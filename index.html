@@ -248,6 +248,19 @@
     white-space: pre-line; font-size: 13.5px; line-height: 1.8;
     font-family: 'Be Vietnam Pro', sans-serif; color: var(--ink);
   }
+  .info-modal-body { white-space: normal; text-align: center; }
+  .info-modal-kicker {
+    font-family: 'Playfair Display', serif; font-style: italic; font-size: 15px;
+    color: var(--c-cal); margin: 0 0 16px;
+  }
+  .info-modal-group {
+    font-family: 'Be Vietnam Pro', sans-serif; font-weight: 500; font-size: 11.5px;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft);
+    margin: 18px 0 4px;
+  }
+  .info-modal-group:first-of-type { margin-top: 0; }
+  .info-modal-line { font-size: 13px; line-height: 1.7; margin: 0; }
+  .info-modal-line em { font-style: italic; color: var(--c-cal); }
 
   /* ---- Intro ---- */
   .intro { text-align: center; }
@@ -1345,7 +1358,7 @@
   <div class="envelope-scene">
     <div class="envelope" id="envelopeEl">
       <div class="envelope-back"></div>
-      <div class="envelope-letter"><p><span class="l1">Two Souls, One Eternal Vow</span><br><span class="l2">Eleanor &amp; James</span></p></div>
+      <div class="envelope-letter"><p><span class="l1">Two Souls, One Eternal Vow</span><br><span class="l2">Angela &amp; James</span></p></div>
       <div class="envelope-flap"></div>
       <div class="envelope-seal">&#9825;</div>
     </div>
@@ -1390,7 +1403,7 @@
   <div class="intro">
     <p class="eyebrow">Two Souls, One Eternal Vow</p>
     <div class="headline-sparkle-wrap">
-      <h1 class="headline" id="headlineText" data-after-text="Just Married!">Eleanor &amp; James</h1>
+      <h1 class="headline" id="headlineText" data-after-text="Just Married!">Angela &amp; James</h1>
       <!-- .sparkle spans kept in the shared markup (rendered inert via CSS)
            so this section stays structurally interchangeable with the
            Birthday/Debut templates. -->
@@ -1404,8 +1417,8 @@
       <span class="sparkle" style="left: 62%; top: 100%; font-size: 11px; animation-delay: 0.3s; animation-duration: 2.7s;">✦</span>
     </div>
     <p class="hero-divider" aria-hidden="true">&#9670;</p>
-    <p class="wedding-date-line">December 12th, 2025</p>
-    <p class="full-name">The Obsidian Room, New York City</p>
+    <p class="wedding-date-line">May 8, 2026</p>
+    <p class="full-name">Antipolo City, Rizal, Philippines</p>
     <a href="#rsvpCard" class="send-btn hero-cta">RSVP Now</a>
   </div>
 
@@ -1415,16 +1428,20 @@
       <div class="info-pill cal">
         <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
         <div>
-          <p class="t">The Ceremony &mdash; 4:00 PM</p>
-          <p class="d">St. Jude's Cathedral</p>
+          <p class="t">The Ceremony &mdash; 1:30 PM</p>
+          <p class="d">Diocesan Shrine and Parish of Saint Pio of Pietrelcina</p>
+          <a class="link" href="https://www.google.com/maps/search/?api=1&query=Diocesan+Shrine+and+Parish+of+Saint+Pio+of+Pietrelcina%2C+106+Sumulong+Hwy%2C+Antipolo+City%2C+1870+Rizal%2C+Philippines" target="_blank" rel="noopener noreferrer">
+            Get Directions
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </a>
         </div>
       </div>
       <div class="info-pill pin">
         <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></div>
         <div>
-          <p class="t">Grand Reception &mdash; 7:00 PM</p>
-          <p class="d">The Plaza Hotel</p>
-          <a class="link" href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer">
+          <p class="t">Cocktail Hour &mdash; 4:00 PM</p>
+          <p class="d">The Emerald Events Place</p>
+          <a class="link" href="https://www.google.com/maps/search/?api=1&query=H598%2BR3G+Cabrera+Rd%2C+Antipolo+City%2C+1870+Rizal%2C+Philippines" target="_blank" rel="noopener noreferrer">
             Get Directions
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
           </a>
@@ -1485,7 +1502,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
         </button>
       </form>
-      <p class="rsvp-note" id="rsvpNote">Kindly reply by November 1st, 2025.</p>
+      <p class="rsvp-note" id="rsvpNote">Kindly reply by April 8th, 2026.</p>
       <div class="rsvp-edit-row">
         <button type="button" class="rsvp-edit-link" id="rsvpEditLink" hidden>Edit RSVP</button>
       </div>
@@ -1530,38 +1547,31 @@
       </div>
       <p class="panel-sub" style="margin: -6px 0 16px; font-size: 12.5px;">The day's unhurried procession, moment by moment.</p>
       <div class="timeline">
-        <div class="tl-item"><p class="tl-time">3:15 PM</p><p class="tl-what">Guests Arrive</p><p class="tl-detail">Seating at St. Jude's Cathedral</p></div>
-        <div class="tl-item"><p class="tl-time">4:00 PM</p><p class="tl-what">The Ceremony</p><p class="tl-detail">Witness the exchange of our eternal vows</p></div>
-        <div class="tl-item"><p class="tl-time">5:30 PM</p><p class="tl-what">Cocktail Hour</p><p class="tl-detail">Drinks and hors d'oeuvres on the terrace</p></div>
-        <div class="tl-item"><p class="tl-time">7:00 PM</p><p class="tl-what">Grand Reception</p><p class="tl-detail">Fine dining at The Plaza Hotel</p></div>
-        <div class="tl-item"><p class="tl-time">8:30 PM</p><p class="tl-what">First Dance &amp; Toasts</p><p class="tl-detail">Words from family and friends</p></div>
-        <div class="tl-item"><p class="tl-time">10:00 PM</p><p class="tl-what">Dancing Under the Stars</p><p class="tl-detail">The evening continues until late</p></div>
+        <div class="tl-item"><p class="tl-time">1:30 PM</p><p class="tl-what">The Ceremony</p><p class="tl-detail">Diocesan Shrine and Parish of Saint Pio of Pietrelcina</p></div>
+        <div class="tl-item"><p class="tl-time">4:00 PM</p><p class="tl-what">Cocktail Hour</p><p class="tl-detail">Enjoy light bites, mingle, play games and strike a pose at our photo booth</p></div>
+        <div class="tl-item"><p class="tl-time">5:00 PM</p><p class="tl-what">Reception Begins</p><p class="tl-detail">The Emerald Events Place</p></div>
+        <div class="tl-item"><p class="tl-time">8:00 PM</p><p class="tl-what">After Party</p><p class="tl-detail">Remember to bring your dancing shoes!</p></div>
       </div>
-      <p class="program-note">Suggested flow &mdash; update this to match the real order of the day.</p>
     </div>
 
     <div class="program-card">
       <div class="sub-head">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        <h2>Wedding Party</h2>
+        <h2>Good to Know</h2>
       </div>
-      <p class="panel-sub" style="margin: -6px 0 16px; font-size: 12.5px;">Tap a card to see who&rsquo;s standing with us.</p>
-      <div class="eighteens-grid">
-        <button type="button" class="eighteens-item" data-eighteens="Bridesmaids">
+      <p class="panel-sub" style="margin: -6px 0 16px; font-size: 12.5px;">Tap a card for the full details.</p>
+      <div class="eighteens-grid" style="grid-template-columns: repeat(3, 1fr);">
+        <button type="button" class="eighteens-item" id="entourageOpenBtn">
+          <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+          <span class="t">Entourage</span>
+        </button>
+        <button type="button" class="eighteens-item" id="dresscodeOpenBtn">
           <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c-1.7 0-3 1.3-3 3 0 1 .5 1.9 1.2 2.4L7 21h10l-3.2-13.6C14.5 6.9 15 6 15 5c0-1.7-1.3-3-3-3Z"/></svg></span>
-          <span class="t">Bridesmaids</span>
+          <span class="t">Dress Code</span>
         </button>
-        <button type="button" class="eighteens-item" data-eighteens="Groomsmen">
-          <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="3" width="10" height="18" rx="1"/><path d="M9 3v6l3 2 3-2V3"/></svg></span>
-          <span class="t">Groomsmen</span>
-        </button>
-        <button type="button" class="eighteens-item" data-eighteens="Maid of Honor &amp; Best Man">
-          <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 7.4H22l-6 4.4 2.3 7.2L12 16.6 5.7 21l2.3-7.2-6-4.4h7.6z"/></svg></span>
-          <span class="t">Maid of Honor &amp; Best Man</span>
-        </button>
-        <button type="button" class="eighteens-item" data-eighteens="Family &amp; Officiant">
-          <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg></span>
-          <span class="t">Family &amp; Officiant</span>
+        <button type="button" class="eighteens-item" id="faqOpenBtn">
+          <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.82 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+          <span class="t">FAQ</span>
         </button>
       </div>
     </div>
@@ -1817,20 +1827,102 @@
     </div>
   </div>
 
-  <div class="album-modal" id="eighteensModal" hidden>
-    <div class="album-modal-inner">
+  <div class="album-modal" id="entourageModal" hidden>
+    <div class="album-modal-inner" style="max-width: 420px;">
       <div class="album-modal-header">
-        <h3 id="eighteensModalTitle"></h3>
-        <div class="album-modal-actions">
-          <button type="button" class="album-modal-close" id="eighteensModalClose" aria-label="Close list">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        </div>
+        <h3>Entourage</h3>
+        <button type="button" class="album-modal-close" id="entourageModalClose" aria-label="Close entourage">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
-      <ol class="eighteens-list" id="eighteensModalList"></ol>
-      <div class="eighteens-save-row" id="eighteensSaveRow" hidden>
-        <button type="button" class="send-btn" id="eighteensSaveBtn" style="margin-top: 0;">Save Names</button>
-        <p class="admin-msg" id="eighteensSaveMsg"></p>
+      <div class="lyrics-modal-body info-modal-body">
+        <p class="info-modal-kicker">Berba &ndash; Serrano Nuptials</p>
+
+        <p class="info-modal-group">Parents of the Bride</p>
+        <p class="info-modal-line">Mr. Edgardo Berba Jr.<br>Mrs. Ma. Hazel Berba</p>
+
+        <p class="info-modal-group">Parents of the Groom</p>
+        <p class="info-modal-line">Mr. Marlon Serrano<br>Mrs. Ermelyn Serrano</p>
+
+        <p class="info-modal-group">Principal Sponsors</p>
+        <p class="info-modal-line">Mr. Benjamin Berba<br>Mr. Angelo David Berba<br>Mr. Emerson Masindo<br>Mr. Joselito Bugay<br>Mr. Alwin Teodoro<br>Mr. Maynard Serrano<br>Mrs. Arlene Berba<br>Ms. Paola Banday<br>Mrs. Sarah Villamora<br>Mrs. Mila Fernandez<br>Mrs. Alicia Ulangca<br>Mrs. Felicidad Cruz<br>Mrs. Maria Rosario Tiangco</p>
+
+        <p class="info-modal-group">Secondary Sponsors</p>
+        <p class="info-modal-line"><em>Veil</em><br>Mr. Christian Guevarra<br>Mrs. Charlene Guevarra</p>
+        <p class="info-modal-line"><em>Cord</em><br>Mr. Bryan De Luna<br>Mrs. Ivy De Luna</p>
+        <p class="info-modal-line"><em>Candle</em><br>Mr. Chi Berba<br>Mrs. Carmela Berba</p>
+
+        <p class="info-modal-group">Bearers</p>
+        <p class="info-modal-line">Bible Bearer &mdash; Noah Berba<br>Ring Bearer &mdash; Lucius Gabriel Berba<br>Coin Bearer &mdash; Lucas Berba</p>
+
+        <p class="info-modal-group">Flower Girls</p>
+        <p class="info-modal-line">Armani Serrano<br>Hope Isabelle Berba</p>
+
+        <p class="info-modal-group">Best Man &amp; Maid of Honor</p>
+        <p class="info-modal-line">Mr. Steve Adler<br>Ms. Ma. Deanne Isabel Berba</p>
+
+        <p class="info-modal-group">Groomsmen</p>
+        <p class="info-modal-line">Mr. Renz Serrano<br>Mr. Kurt Blancaflor<br>Mr. Allen Jann Pulma<br>Mr. Michael Don De Leon</p>
+
+        <p class="info-modal-group">Bridesmaid/Man</p>
+        <p class="info-modal-line">Ms. Ricki Velez<br>Mrs. Jessica Guiaco<br>Ms. Vitoria Angela Jarlego<br>Ms. Rejina Catapang<br>Mr. John Albert Feliciano</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="album-modal" id="dresscodeModal" hidden>
+    <div class="album-modal-inner" style="max-width: 420px;">
+      <div class="album-modal-header">
+        <h3>Dress Code</h3>
+        <button type="button" class="album-modal-close" id="dresscodeModalClose" aria-label="Close dress code">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="lyrics-modal-body info-modal-body">
+        <p class="info-modal-kicker">Guest Dress Code</p>
+        <p class="info-modal-group">Ladies</p>
+        <p class="info-modal-line">Formal dresses: floor-length, pastel colours, or fun summer colours. Patterns are encouraged.<br>Please avoid wearing: any shades of white, baby blue (bridesmaids colour) and black.</p>
+        <p class="info-modal-group">Gentlemen</p>
+        <p class="info-modal-line">Please opt for a coloured suit, like tan, sage or pastel shades, paired with a crisp white dress shirt. Black suit if other colours are not available. Breathable fabrics like linen or cotton are recommended for comfort. A tie is optional, but encouraged.<br>Please avoid wearing: sneakers, jeans, short-sleeve polos, and a navy coloured suit as it is reserved for the groom.</p>
+
+        <p class="info-modal-kicker" style="margin-top: 22px;">Principal Sponsors Dress Code</p>
+        <p class="info-modal-group">Ladies</p>
+        <p class="info-modal-line">Formal dress: floor length dress or gown in shades of champagne.</p>
+        <p class="info-modal-group">Gentlemen</p>
+        <p class="info-modal-line">Black suit, champagne coloured tie and black dress shoes.<br><em>*Neck tie will be provided.</em></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="album-modal" id="faqModal" hidden>
+    <div class="album-modal-inner" style="max-width: 420px;">
+      <div class="album-modal-header">
+        <h3>FAQ</h3>
+        <button type="button" class="album-modal-close" id="faqModalClose" aria-label="Close FAQ">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="lyrics-modal-body info-modal-body">
+        <p class="info-modal-group">Are children welcome?</p>
+        <p class="info-modal-line">While we love your children, this is an adults-only event. The only children attending will be those in the wedding party. We appreciate your understanding!</p>
+
+        <p class="info-modal-group">Can I bring a plus one?</p>
+        <p class="info-modal-line">Due to our venue capacity, we can only accommodate guests named on your RSVP. We will inform you if you are receiving a plus one. There will be no exceptions. We appreciate your understanding and cooperation.</p>
+
+        <p class="info-modal-group">What should I do if I cannot make it?</p>
+        <p class="info-modal-line">We will miss you! If you are unable to attend, please select "Decline" on your RSVP so we can plan accordingly. If you've already RSVP'd "Accept" but your plans have changed, please reach out to our wedding coordinator, Jam/David, as soon as you can.</p>
+
+        <p class="info-modal-group">What should I wear to the wedding?</p>
+        <p class="info-modal-line">Dress to impress! We request a strictly formal attire, meaning ladies should wear floor length dresses or gowns and men should wear suits. For outfit inspiration, check out the Dress Code card. A friendly reminder that casual attire such as jeans, t-shirts, flip-flops, and sneakers are not suitable for this event. For the ladies please avoid anything in the shades of white, maroon, or black. Think fun summery colours!</p>
+
+        <p class="info-modal-group">Will there be a bar at the reception?</p>
+        <p class="info-modal-line">Yes! Drinks are on us, but the hangover is on you!</p>
+
+        <p class="info-modal-group">What happens if I miss the deadline?</p>
+        <p class="info-modal-line">Unfortunately, we won't be able to accommodate RSVPs after the deadline as we need to provide final numbers to our venue and caterer. If we don't receive your RSVP by the deadline of April 8th, you will be marked as "Not Attending". We appreciate your understanding but <strong>no exceptions</strong> can be made.</p>
+
+        <p class="info-modal-group">Gifts</p>
+        <p class="info-modal-line">With all that we have, we are truly blessed. Your presence and prayers are all that we need. But, if you desire to give nonetheless, a monetary gift is one we suggest.</p>
       </div>
     </div>
   </div>
@@ -4308,7 +4400,7 @@ var qrcode = function() {
   var TURNED_ONE_SWITCH = new Date('2099-01-01T00:00:00').getTime();
   function headlinePhrase(withBang) {
     var turned = Date.now() >= TURNED_ONE_SWITCH;
-    var phrase = turned ? 'Just Married!' : 'Eleanor & James';
+    var phrase = turned ? 'Just Married!' : 'Angela & James';
     return withBang ? phrase : phrase;
   }
   (function () {
@@ -5062,91 +5154,42 @@ var qrcode = function() {
     if (e.target === albumModal) closeAlbumGrid(false);
   });
 
-  // 18's List: each of the four square cards opens the same floating modal,
-  // pre-filled with 18 placeholder slots for who's assigned to that item.
-  // Admin can type real names in; guests just see whatever's been saved.
-  var WEDDING_PARTY_SLOTS = 8;
-  var eighteensModal = document.getElementById('eighteensModal');
-  var eighteensModalTitle = document.getElementById('eighteensModalTitle');
-  var eighteensModalList = document.getElementById('eighteensModalList');
-  var eighteensSaveRow = document.getElementById('eighteensSaveRow');
-  var eighteensSaveBtn = document.getElementById('eighteensSaveBtn');
-  var eighteensSaveMsg = document.getElementById('eighteensSaveMsg');
-  var eighteensCurrentLabel = null;
-
-  function openEighteensModal(label) {
-    eighteensCurrentLabel = label;
-    eighteensModalTitle.textContent = label;
-    eighteensModalList.innerHTML = '';
-    eighteensSaveMsg.textContent = '';
-    var saved = (manifest.eighteensLists && manifest.eighteensLists[label]) || [];
-    var admin = isAdminUnlocked();
-    for (var i = 0; i < WEDDING_PARTY_SLOTS; i++) {
-      var li = document.createElement('li');
-      var val = saved[i] || '';
-      if (admin) {
-        var input = document.createElement('input');
-        input.type = 'text';
-        input.className = 'eighteens-input';
-        input.placeholder = '[Name]';
-        input.value = val;
-        li.appendChild(input);
-      } else {
-        li.textContent = val || '[Name]';
-      }
-      eighteensModalList.appendChild(li);
+  // Good to Know: three static-content cards (Entourage, Dress Code, FAQ)
+  // sharing one simple open/close pattern — no admin editing, just fixed copy.
+  function makeInfoModal(modalId, closeBtnId, openBtnId, stateKey) {
+    var modal = document.getElementById(modalId);
+    function hideNow() {
+      modal.hidden = true;
+      document.body.style.overflow = '';
     }
-    eighteensSaveRow.hidden = !admin;
-    eighteensModal.hidden = false;
-    document.body.style.overflow = 'hidden';
-    history.pushState({ eighteensModal: true }, '');
-  }
-
-  eighteensSaveBtn.addEventListener('click', function () {
-    var inputs = eighteensModalList.querySelectorAll('.eighteens-input');
-    var values = Array.from(inputs).map(function (inp) { return inp.value.trim(); });
-    if (!manifest.eighteensLists) manifest.eighteensLists = {};
-    manifest.eighteensLists[eighteensCurrentLabel] = values;
-    eighteensSaveMsg.textContent = 'Saving…';
-    eighteensSaveMsg.className = 'admin-msg';
-    if (isConfigured()) {
-      persistManifest()
-        .then(function () {
-          eighteensSaveMsg.textContent = 'Saved.';
-          eighteensSaveMsg.className = 'admin-msg ok';
-        })
-        .catch(function () {
-          eighteensSaveMsg.textContent = 'Changed here, but couldn’t reach the shared list — try again.';
-          eighteensSaveMsg.className = 'admin-msg err';
-        });
-    } else {
-      eighteensSaveMsg.textContent = 'Preview only — upload isn’t wired up yet.';
-      eighteensSaveMsg.className = 'admin-msg';
+    function open() {
+      modal.hidden = false;
+      document.body.style.overflow = 'hidden';
+      var state = {}; state[stateKey] = true;
+      history.pushState(state, '');
     }
-  });
-  function hideEighteensModalNow() {
-    eighteensModal.hidden = true;
-    document.body.style.overflow = '';
+    function close(fromPopstate) {
+      if (fromPopstate) { hideNow(); return; }
+      if (history.state && history.state[stateKey]) history.back();
+      else hideNow();
+    }
+    document.getElementById(openBtnId).addEventListener('click', open);
+    document.getElementById(closeBtnId).addEventListener('click', function () { close(false); });
+    modal.addEventListener('click', function (e) { if (e.target === modal) close(false); });
+    return { modal: modal, close: close };
   }
-  function closeEighteensModal(fromPopstate) {
-    if (fromPopstate) { hideEighteensModalNow(); return; }
-    if (history.state && history.state.eighteensModal) history.back();
-    else hideEighteensModalNow();
-  }
-  document.querySelectorAll('.eighteens-item').forEach(function (btn) {
-    btn.addEventListener('click', function () { openEighteensModal(btn.getAttribute('data-eighteens')); });
-  });
-  document.getElementById('eighteensModalClose').addEventListener('click', function () { closeEighteensModal(false); });
-  eighteensModal.addEventListener('click', function (e) {
-    if (e.target === eighteensModal) closeEighteensModal(false);
-  });
+  var entourageInfo = makeInfoModal('entourageModal', 'entourageModalClose', 'entourageOpenBtn', 'entourageModal');
+  var dresscodeInfo = makeInfoModal('dresscodeModal', 'dresscodeModalClose', 'dresscodeOpenBtn', 'dresscodeModal');
+  var faqInfo = makeInfoModal('faqModal', 'faqModalClose', 'faqOpenBtn', 'faqModal');
 
   // Single handler so a back-press/gesture closes only the topmost modal —
   // opening an album then a photo pushes two history states.
   window.addEventListener('popstate', function () {
     if (!lightbox.hidden) closeLightbox(true);
     else if (!albumModal.hidden) closeAlbumGrid(true);
-    else if (!eighteensModal.hidden) closeEighteensModal(true);
+    else if (!entourageInfo.modal.hidden) entourageInfo.close(true);
+    else if (!dresscodeInfo.modal.hidden) dresscodeInfo.close(true);
+    else if (!faqInfo.modal.hidden) faqInfo.close(true);
     else if (!lyricsModal.hidden) closeLyricsModal(true);
   });
 
@@ -6374,7 +6417,7 @@ var qrcode = function() {
         var img = document.createElement('img');
         img.className = 'avatar-slide' + (i === 0 ? ' is-active' : '');
         img.src = url;
-        img.alt = 'Eleanor & James';
+        img.alt = 'Angela & James';
         avatarInner.appendChild(img);
       });
       if (urls.length > 1) {
