@@ -1724,15 +1724,6 @@
       </div>
     </div>
 
-    <div class="party-shots">
-      <div class="sub-head" style="margin-top: 30px;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2Z"/><circle cx="12" cy="13" r="4"/></svg>
-        <h2>From the Celebration</h2>
-      </div>
-      <p class="panel-sub" style="margin: -6px 0 14px; font-size: 12.5px;">Photobooth pictures from the gala itself, added live as guests snap them.</p>
-      <div class="gallery-grid" id="photoboothGrid"></div>
-      <p class="gallery-note" id="photoboothEmpty">No photos yet &mdash; be the first! Head to the Photobooth tab.</p>
-    </div>
   </section>
 
   <section class="block" id="photobooth">
@@ -4561,6 +4552,17 @@ var qrcode = function() {
 
   function playMusic() { bgMusicAudio.play().catch(function () {}); }
 
+  // Shared by the "Watch the Video" embed: when a guest presses play there,
+  // the background music mutes through the same state the manual toggle
+  // uses, so the icon/label stay in sync instead of drifting out of step.
+  function muteMusicForVideo() {
+    if (musicMuted) return;
+    musicMuted = true;
+    localStorage.setItem(MUSIC_MUTED_KEY, '1');
+    bgMusicAudio.muted = true;
+    updateMusicToggleUI();
+  }
+
   function loadCurrentTrack(autoplay) {
     if (!playlist.length) return;
     bgMusicAudio.src = playlist[currentTrackIndex].url;
@@ -6268,6 +6270,7 @@ var qrcode = function() {
   var photoboothEmpty = document.getElementById('photoboothEmpty');
 
   function renderPhotoboothGrid() {
+    if (!photoboothGrid) return;
     photoboothGrid.innerHTML = '';
     var rows = manifest.photobooth || [];
     photoboothEmpty.style.display = rows.length ? 'none' : '';
@@ -6295,6 +6298,39 @@ var qrcode = function() {
     return /facebook\.com|fb\.watch/.test(url);
   }
 
+  // The YouTube IFrame API is loaded lazily (only once a YouTube video is
+  // actually shown) and reused across re-renders -- e.g. the admin changing
+  // the video link -- via window.onYouTubeIframeAPIReady, which YouTube's
+  // own script calls once it has finished loading.
+  var youTubeApiLoading = false;
+  function initYouTubePlayer(iframeId) {
+    function create() {
+      if (!window.YT || !window.YT.Player) return;
+      new YT.Player(iframeId, {
+        events: {
+          onStateChange: function (e) {
+            if (e.data === YT.PlayerState.PLAYING) muteMusicForVideo();
+          }
+        }
+      });
+    }
+    if (window.YT && window.YT.Player) {
+      create();
+      return;
+    }
+    var prevReady = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = function () {
+      if (typeof prevReady === 'function') prevReady();
+      create();
+    };
+    if (!youTubeApiLoading) {
+      youTubeApiLoading = true;
+      var tag = document.createElement('script');
+      tag.src = 'https://www.youtube.com/iframe_api';
+      document.head.appendChild(tag);
+    }
+  }
+
   function renderVideoCard(url) {
     if (!url) {
       videoLinkCard.hidden = true;
@@ -6304,7 +6340,7 @@ var qrcode = function() {
     var ytId = getYouTubeId(url);
     var html;
     if (ytId) {
-      html = '<iframe src="https://www.youtube-nocookie.com/embed/' + ytId + '" title="Gala video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>';
+      html = '<iframe id="ytVideoFrame" src="https://www.youtube-nocookie.com/embed/' + ytId + '?enablejsapi=1&origin=' + encodeURIComponent(location.origin) + '" title="Gala video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>';
     } else if (isFacebookVideoUrl(url)) {
       html = '<iframe src="https://www.facebook.com/plugins/video.php?href=' + encodeURIComponent(url) + '&show_text=false" title="Gala video" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share" allowfullscreen></iframe>';
     } else {
@@ -6312,6 +6348,14 @@ var qrcode = function() {
     }
     videoEmbed.innerHTML = html;
     videoLinkCard.hidden = false;
+    if (ytId) {
+      initYouTubePlayer('ytVideoFrame');
+    } else {
+      // Facebook's embed (and the plain-link fallback) don't expose a real
+      // play-state event without loading the full Facebook SDK, so a tap
+      // anywhere on the embed is used as a practical stand-in signal.
+      videoEmbed.addEventListener('click', muteMusicForVideo, { once: true });
+    }
   }
 
   document.getElementById('videoUrlSaveBtn').addEventListener('click', function () {
