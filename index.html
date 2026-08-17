@@ -1677,7 +1677,7 @@
           <p class="admin-msg" id="adminUploadMsg"></p>
 
           <div class="field" style="margin-top: 14px;">
-            <label for="uploadUrls">Or Add by URL <span class="counter-max-hint">(one per line)</span></label>
+            <label for="uploadUrls">Or Add by URL <span class="counter-max-hint">(one per line, no limit)</span></label>
             <textarea id="uploadUrls" rows="2" placeholder="https://example.com/photo1.jpg"></textarea>
           </div>
           <button type="button" id="uploadUrlsBtn" class="pillbtn p3" style="margin-top: 8px; width: 100%;">
@@ -6074,19 +6074,9 @@ var qrcode = function() {
       return;
     }
 
-    var existingCount = (manifest.monthPhotos[slug] || []).length;
-    var remaining = MAX_PHOTOS_PER_MONTH - existingCount;
-    if (remaining <= 0) {
-      urlsMsg.textContent = MONTHS[idx] + ' already has the max of ' + MAX_PHOTOS_PER_MONTH + ' photos.';
-      urlsMsg.className = 'admin-msg err';
-      return;
-    }
-    var skippedForCap = 0;
-    if (urls.length > remaining) {
-      skippedForCap = urls.length - remaining;
-      urls = urls.slice(0, remaining);
-    }
-
+    // URL-added photos are exempt from MAX_PHOTOS_PER_MONTH -- unlike a real
+    // file upload, a pasted URL costs nothing in Cloudinary storage/bandwidth,
+    // so there's no resource reason to cap it.
     if (!manifest.monthPhotos[slug]) manifest.monthPhotos[slug] = [];
     urls.forEach(function (url) {
       manifest.monthPhotos[slug].push(url);
@@ -6100,9 +6090,8 @@ var qrcode = function() {
     urlsMsg.textContent = 'Saving…';
     urlsMsg.className = 'admin-msg';
     persistManifest().then(function () {
-      var capNote = skippedForCap ? (' (' + skippedForCap + ' skipped — ' + MAX_PHOTOS_PER_MONTH + ' photo max per album)') : '';
-      urlsMsg.textContent = 'Added ' + urls.length + (urls.length === 1 ? ' photo' : ' photos') + ' to ' + MONTHS[idx] + '!' + capNote;
-      urlsMsg.className = capNote ? 'admin-msg err' : 'admin-msg ok';
+      urlsMsg.textContent = 'Added ' + urls.length + (urls.length === 1 ? ' photo' : ' photos') + ' to ' + MONTHS[idx] + '!';
+      urlsMsg.className = 'admin-msg ok';
       urlsInput.value = '';
       renderCoverPicker(idx);
     }).catch(function () {
