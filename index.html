@@ -274,6 +274,35 @@
   .info-modal-line { font-size: 13px; line-height: 1.7; margin: 0; }
   .info-modal-line em { font-style: italic; color: var(--c-cal); }
 
+  .album-manage-row {
+    display: flex; align-items: center; gap: 6px; padding: 8px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .album-manage-row:last-child { border-bottom: none; }
+  .album-manage-reorder { display: flex; flex-direction: column; gap: 2px; flex: none; }
+  .album-manage-arrow {
+    width: 22px; height: 18px; border-radius: 6px !important; border: none;
+    background: rgba(0,0,0,0.06); color: var(--ink-soft); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .album-manage-arrow:disabled { opacity: 0.3; cursor: default; }
+  .album-manage-arrow svg { width: 11px; height: 11px; }
+  .album-manage-name {
+    flex: 1; min-width: 0; border: none; border-bottom: 1px solid var(--line);
+    background: none; font-family: 'Be Vietnam Pro', sans-serif; font-size: 13px; color: var(--ink);
+    padding: 4px 2px;
+  }
+  .album-manage-count {
+    flex: none; font-size: 10.5px; color: var(--ink-soft); white-space: nowrap;
+  }
+  .album-manage-delete {
+    flex: none; width: 26px; height: 26px; border-radius: 50% !important; border: none;
+    background: rgba(0,0,0,0.06); color: var(--ink-soft); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .album-manage-delete:hover { background: var(--p1-tint); color: var(--p1); }
+  .album-manage-delete svg { width: 12px; height: 12px; }
+
   /* ---- Intro ---- */
   .intro { text-align: center; }
   .eyebrow {
@@ -1630,7 +1659,10 @@
           <p class="admin-msg" id="adminLockMsg"></p>
         </div>
         <div id="adminUnlocked" hidden>
-          <label for="uploadMonth">Add a Photo To</label>
+          <button type="button" id="manageAlbumsBtn" class="pillbtn p3" style="width: 100%;">
+            Manage Albums
+          </button>
+          <label for="uploadMonth" style="margin-top: 14px; display: block;">Add a Photo To</label>
           <div class="admin-row">
             <select id="uploadMonth"></select>
           </div>
@@ -1959,6 +1991,23 @@
           Use This Image
         </button>
         <p class="admin-msg" id="mediaUrlMsg"></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="album-modal" id="manageAlbumsModal" hidden>
+    <div class="album-modal-inner" style="max-width: 420px;">
+      <div class="album-modal-header">
+        <h3>Manage Albums</h3>
+        <button type="button" class="album-modal-close" id="manageAlbumsModalClose" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div style="padding: 18px; overflow-y: auto;">
+        <p class="panel-sub" style="margin: 0 0 14px; font-size: 12px;">Rename, reorder, or remove an album. Photos already in a removed album stay saved but won&rsquo;t be reachable from the gallery.</p>
+        <div id="manageAlbumsList"></div>
+        <button type="button" class="send-btn" id="manageAlbumsSaveBtn" style="margin-top: 14px;">Save Changes</button>
+        <p class="admin-msg" id="manageAlbumsMsg"></p>
       </div>
     </div>
   </div>
@@ -4423,14 +4472,33 @@ var qrcode = function() {
 </script>
 
 <script>
-  var MONTHS = ["Engagement","Save the Date","Bridal Shower","Rehearsal Dinner","Getting Ready","The Ceremony","Cocktail Hour","Reception","First Dance","Cake Cutting","Toasts","Send-Off"];
-  var MONTH_SLUGS = ["engagement","save-the-date","bridal-shower","rehearsal-dinner","getting-ready","ceremony","cocktail-hour","reception","first-dance","cake-cutting","toasts","send-off"];
+  // These are only the fallback/first-run defaults now -- once the admin
+  // renames, reorders, or deletes an album, manifest.albums (persisted) is
+  // the real source of truth and MONTHS/MONTH_SLUGS become derived from it
+  // via syncMonthsFromAlbums(). Every other function in this file reads the
+  // MONTHS/MONTH_SLUGS identifiers fresh each time, so reassigning them here
+  // propagates everywhere automatically -- the one thing that does NOT
+  // happen for free is DOM already built from the old arrays (gallery tiles,
+  // the upload/album <select> options), which is why those got pulled out
+  // into buildGalleryTiles()/buildAlbumSelectors() below instead of running
+  // inline, so they can be re-run after a real album list loads or changes.
+  var DEFAULT_MONTHS = ["Engagement","Save the Date","Bridal Shower","Rehearsal Dinner","Getting Ready","The Ceremony","Cocktail Hour","Reception","First Dance","Cake Cutting","Toasts","Send-Off"];
+  var DEFAULT_MONTH_SLUGS = ["engagement","save-the-date","bridal-shower","rehearsal-dinner","getting-ready","ceremony","cocktail-hour","reception","first-dance","cake-cutting","toasts","send-off"];
+  var MONTHS = DEFAULT_MONTHS.slice();
+  var MONTH_SLUGS = DEFAULT_MONTH_SLUGS.slice();
+  function defaultAlbums() {
+    return DEFAULT_MONTHS.map(function (name, i) { return { slug: DEFAULT_MONTH_SLUGS[i], name: name }; });
+  }
+  function syncMonthsFromAlbums() {
+    MONTHS = manifest.albums.map(function (a) { return a.name; });
+    MONTH_SLUGS = manifest.albums.map(function (a) { return a.slug; });
+  }
   var HUES = ["rose","peach","butter","mint","sky","lilac"];
 
   // Declared up here (rather than near persistManifest/loadManifest further
   // down) because the tile/slideshow builders below read manifest.* at
   // definition time, before the fetch-backed load ever runs.
-  var manifest = { months: {}, monthPhotos: {}, photobooth: [], rsvps: [], wishes: [], celebrationLive: false, videoUrl: '', slideshowMode: { mode: 'covers', albumSlug: '' }, bannerUrl: '', avatarUrls: [], eighteensLists: {}, musicTracks: [] };
+  var manifest = { months: {}, monthPhotos: {}, photobooth: [], rsvps: [], wishes: [], celebrationLive: false, videoUrl: '', slideshowMode: { mode: 'covers', albumSlug: '' }, bannerUrl: '', avatarUrls: [], eighteensLists: {}, musicTracks: [], albums: null };
 
   // Placeholder far-future date so the template defaults to its inviting
   // "before" copy — swap this for the real event's end time per client.
@@ -4787,25 +4855,30 @@ var qrcode = function() {
   // badge; every year-folder after them numbers by the actual age.
   function tileNum(i) { return i <= 1 ? '✦' : (i - 1); }
 
-  MONTHS.forEach(function (label, i) {
-    var hue = HUES[i % HUES.length];
-    var hue2 = HUES[(i + 2) % HUES.length];
+  function buildGalleryTiles() {
+    grid.innerHTML = '';
+    tiles = [];
+    MONTHS.forEach(function (label, i) {
+      var hue = HUES[i % HUES.length];
+      var hue2 = HUES[(i + 2) % HUES.length];
 
-    var tile = document.createElement('button');
-    tile.className = 'g-tile';
-    tile.style.background = 'linear-gradient(150deg, var(--' + hue + '), var(--' + hue2 + '))';
-    tile.innerHTML = '<span class="n">' + tileNum(i) + '</span><span class="l">' + label + '</span>';
-    tile.addEventListener('click', function () {
-      if (manifest.months[MONTH_SLUGS[i]]) {
-        openAlbumGrid(i);
-      } else {
-        goToFolder(i);
-        slideshow.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
+      var tile = document.createElement('button');
+      tile.className = 'g-tile';
+      tile.style.background = 'linear-gradient(150deg, var(--' + hue + '), var(--' + hue2 + '))';
+      tile.innerHTML = '<span class="n">' + tileNum(i) + '</span><span class="l">' + label + '</span>';
+      tile.addEventListener('click', function () {
+        if (manifest.months[MONTH_SLUGS[i]]) {
+          openAlbumGrid(i);
+        } else {
+          goToFolder(i);
+          slideshow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      });
+      grid.appendChild(tile);
+      tiles.push(tile);
     });
-    grid.appendChild(tile);
-    tiles.push(tile);
-  });
+  }
+  buildGalleryTiles();
 
   // The folder strip scrolls natively via touch; this adds mouse-drag panning
   // for desktop, and suppresses the tile click that would otherwise fire
@@ -5236,6 +5309,7 @@ var qrcode = function() {
     else if (!faqInfo.modal.hidden) faqInfo.close(true);
     else if (!lyricsModal.hidden) closeLyricsModal(true);
     else if (!mediaUrlModal.hidden) closeMediaUrlModal(true);
+    else if (!manageAlbumsModal.hidden) closeManageAlbumsModal(true);
   });
 
   var lyricsModal = document.getElementById('lyricsModal');
@@ -5476,7 +5550,8 @@ var qrcode = function() {
       bannerUrl: manifest.bannerUrl,
       avatarUrls: manifest.avatarUrls,
       eighteensLists: manifest.eighteensLists,
-      musicTracks: manifest.musicTracks
+      musicTracks: manifest.musicTracks,
+      albums: manifest.albums || defaultAlbums()
     };
     return fetch('https://api.jsonbin.io/v3/b/' + GALLERY_CONFIG.jsonbinId, {
       method: 'PUT',
@@ -5577,6 +5652,12 @@ var qrcode = function() {
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (data) {
         var record = data && data.record;
+        manifest.albums = (record && Array.isArray(record.albums) && record.albums.length)
+          ? record.albums
+          : defaultAlbums();
+        syncMonthsFromAlbums();
+        buildGalleryTiles();
+        buildAlbumSelectors();
         var monthsArr = record && Array.isArray(record.months) ? record.months : (Array.isArray(record) ? record : []);
         monthsArr.forEach(function (entry) {
           var i = MONTH_SLUGS.indexOf(entry.slug);
@@ -5623,16 +5704,159 @@ var qrcode = function() {
   // the "feature one album" slideshow mode.
   var uploadMonth = document.getElementById('uploadMonth');
   var slideshowAlbumSelect = document.getElementById('slideshowAlbumSelect');
-  MONTHS.forEach(function (label, i) {
-    var opt = document.createElement('option');
-    opt.value = i;
-    opt.textContent = label;
-    uploadMonth.appendChild(opt);
+  function buildAlbumSelectors() {
+    var prevUploadIdx = uploadMonth.value;
+    var prevAlbumSlug = slideshowAlbumSelect.value;
+    uploadMonth.innerHTML = '';
+    slideshowAlbumSelect.innerHTML = '';
+    MONTHS.forEach(function (label, i) {
+      var opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = label;
+      uploadMonth.appendChild(opt);
 
-    var albumOpt = document.createElement('option');
-    albumOpt.value = MONTH_SLUGS[i];
-    albumOpt.textContent = label;
-    slideshowAlbumSelect.appendChild(albumOpt);
+      var albumOpt = document.createElement('option');
+      albumOpt.value = MONTH_SLUGS[i];
+      albumOpt.textContent = label;
+      slideshowAlbumSelect.appendChild(albumOpt);
+    });
+    if (prevUploadIdx && MONTHS[prevUploadIdx]) uploadMonth.value = prevUploadIdx;
+    if (prevAlbumSlug && MONTH_SLUGS.indexOf(prevAlbumSlug) !== -1) slideshowAlbumSelect.value = prevAlbumSlug;
+  }
+  buildAlbumSelectors();
+
+  /* ---- Manage Albums: admin can rename, reorder, and delete albums.
+     Edits happen on a working copy so closing without saving is a no-op;
+     "Save Changes" is what commits to manifest.albums and persists. ---- */
+  var manageAlbumsModal = document.getElementById('manageAlbumsModal');
+  var manageAlbumsList = document.getElementById('manageAlbumsList');
+  var manageAlbumsMsg = document.getElementById('manageAlbumsMsg');
+  var workingAlbums = null;
+
+  function renderManageAlbumsList() {
+    manageAlbumsList.innerHTML = '';
+    workingAlbums.forEach(function (album, i) {
+      var row = document.createElement('div');
+      row.className = 'album-manage-row';
+
+      var reorder = document.createElement('div');
+      reorder.className = 'album-manage-reorder';
+      var upBtn = document.createElement('button');
+      upBtn.type = 'button';
+      upBtn.className = 'album-manage-arrow';
+      upBtn.setAttribute('aria-label', 'Move up');
+      upBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>';
+      upBtn.disabled = i === 0;
+      upBtn.addEventListener('click', function () {
+        var tmp = workingAlbums[i - 1];
+        workingAlbums[i - 1] = workingAlbums[i];
+        workingAlbums[i] = tmp;
+        renderManageAlbumsList();
+      });
+      var downBtn = document.createElement('button');
+      downBtn.type = 'button';
+      downBtn.className = 'album-manage-arrow';
+      downBtn.setAttribute('aria-label', 'Move down');
+      downBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
+      downBtn.disabled = i === workingAlbums.length - 1;
+      downBtn.addEventListener('click', function () {
+        var tmp = workingAlbums[i + 1];
+        workingAlbums[i + 1] = workingAlbums[i];
+        workingAlbums[i] = tmp;
+        renderManageAlbumsList();
+      });
+      reorder.appendChild(upBtn);
+      reorder.appendChild(downBtn);
+
+      var nameInput = document.createElement('input');
+      nameInput.type = 'text';
+      nameInput.className = 'album-manage-name';
+      nameInput.value = album.name;
+      nameInput.addEventListener('input', function () { album.name = nameInput.value; });
+
+      var count = document.createElement('span');
+      count.className = 'album-manage-count';
+      var n = (manifest.monthPhotos[album.slug] || []).length;
+      count.textContent = n + (n === 1 ? ' photo' : ' photos');
+
+      var delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = 'album-manage-delete';
+      delBtn.setAttribute('aria-label', 'Delete album');
+      delBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+      delBtn.addEventListener('click', function () {
+        if (workingAlbums.length <= 1) {
+          manageAlbumsMsg.textContent = 'Keep at least one album.';
+          manageAlbumsMsg.className = 'admin-msg err';
+          return;
+        }
+        workingAlbums.splice(i, 1);
+        renderManageAlbumsList();
+      });
+
+      row.appendChild(reorder);
+      row.appendChild(nameInput);
+      row.appendChild(count);
+      row.appendChild(delBtn);
+      manageAlbumsList.appendChild(row);
+    });
+  }
+
+  function openManageAlbumsModal() {
+    workingAlbums = (manifest.albums || defaultAlbums()).map(function (a) { return { slug: a.slug, name: a.name }; });
+    manageAlbumsMsg.textContent = '';
+    renderManageAlbumsList();
+    manageAlbumsModal.hidden = false;
+    document.body.style.overflow = 'hidden';
+    history.pushState({ manageAlbumsModal: true }, '');
+  }
+  function hideManageAlbumsModalNow() {
+    manageAlbumsModal.hidden = true;
+    document.body.style.overflow = '';
+  }
+  function closeManageAlbumsModal(fromPopstate) {
+    if (fromPopstate) { hideManageAlbumsModalNow(); return; }
+    if (history.state && history.state.manageAlbumsModal) history.back();
+    else hideManageAlbumsModalNow();
+  }
+  document.getElementById('manageAlbumsBtn').addEventListener('click', openManageAlbumsModal);
+  document.getElementById('manageAlbumsModalClose').addEventListener('click', function () { closeManageAlbumsModal(false); });
+  manageAlbumsModal.addEventListener('click', function (e) { if (e.target === manageAlbumsModal) closeManageAlbumsModal(false); });
+
+  document.getElementById('manageAlbumsSaveBtn').addEventListener('click', function () {
+    var hasEmpty = workingAlbums.some(function (a) { return !a.name.trim(); });
+    if (hasEmpty) {
+      manageAlbumsMsg.textContent = 'Album names can’t be empty.';
+      manageAlbumsMsg.className = 'admin-msg err';
+      return;
+    }
+    manifest.albums = workingAlbums.map(function (a) { return { slug: a.slug, name: a.name.trim() }; });
+    syncMonthsFromAlbums();
+    buildGalleryTiles();
+    buildAlbumSelectors();
+    MONTH_SLUGS.forEach(function (slug, i) {
+      if (manifest.months[slug]) setTileCover(i, manifest.months[slug]);
+    });
+    renderSlideshow();
+    syncSlideshowModeUI();
+
+    manageAlbumsMsg.textContent = 'Saving…';
+    manageAlbumsMsg.className = 'admin-msg';
+    if (isConfigured()) {
+      persistManifest()
+        .then(function () {
+          manageAlbumsMsg.textContent = 'Saved.';
+          manageAlbumsMsg.className = 'admin-msg ok';
+          closeManageAlbumsModal(false);
+        })
+        .catch(function () {
+          manageAlbumsMsg.textContent = 'Changed here, but couldn’t reach the shared list — try again.';
+          manageAlbumsMsg.className = 'admin-msg err';
+        });
+    } else {
+      manageAlbumsMsg.textContent = 'Preview only — upload isn’t wired up yet.';
+      manageAlbumsMsg.className = 'admin-msg';
+    }
   });
 
   var slideshowModeSelect = document.getElementById('slideshowModeSelect');
@@ -5758,7 +5982,7 @@ var qrcode = function() {
       });
   }
 
-  var MAX_PHOTOS_PER_MONTH = 20;
+  var MAX_PHOTOS_PER_MONTH = 30;
 
   document.getElementById('uploadBtn').addEventListener('click', function () {
     var fileInput = document.getElementById('uploadFile');
