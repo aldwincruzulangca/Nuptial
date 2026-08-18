@@ -5583,6 +5583,14 @@ var qrcode = function() {
     cloudName: 'coyw7r0r',
     uploadPreset: 'ftpozq0r',
     jsonbinId: '6a7e6537f5f4af5e2913c700',
+    // Album photos (monthPhotos) live in a separate bin from everything else.
+    // jsonbin's free plan caps a single bin at 100KB, and monthPhotos alone
+    // (pasted Facebook/Instagram URLs are long) was already ~88KB, pinning
+    // the combined record right at the ceiling -- new albums (Rehearsal
+    // Dinner, First Dance, Cake Cutting, Toasts) silently failed to save
+    // because persistManifest() never checked the PUT response status.
+    // Splitting gives each bin its own 100KB budget.
+    galleryBinId: '6a83ba6eda38895dfef0efcc',
     jsonbinKey: '$2a$10$/NLdb7gXgqU/J9H86zts4uAyg8kAivvcZgYjUEG2guZyAp.jF9mBe',
     passcode: '10082025'
   };
@@ -5592,14 +5600,24 @@ var qrcode = function() {
     });
   }
 
+  // Split across two bins so a full gallery bin can't block RSVPs/wishes/etc,
+  // and vice versa -- each gets its own 100KB jsonbin free-plan budget.
+  function putBin(binId, body) {
+    return fetch('https://api.jsonbin.io/v3/b/' + binId, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Master-Key': GALLERY_CONFIG.jsonbinKey },
+      body: JSON.stringify(body)
+    }).then(function (r) {
+      if (!r.ok) throw new Error('jsonbin PUT ' + binId + ' failed: ' + r.status);
+      return r;
+    });
+  }
+
   function persistManifest() {
-    var record = {
+    var coreRecord = {
       months: MONTH_SLUGS
         .filter(function (s) { return manifest.months[s]; })
         .map(function (s) { return { slug: s, url: manifest.months[s] }; }),
-      monthPhotos: MONTH_SLUGS
-        .filter(function (s) { return manifest.monthPhotos[s] && manifest.monthPhotos[s].length; })
-        .map(function (s) { return { slug: s, urls: manifest.monthPhotos[s] }; }),
       photobooth: manifest.photobooth,
       rsvps: manifest.rsvps,
       wishes: manifest.wishes,
@@ -5612,11 +5630,15 @@ var qrcode = function() {
       musicTracks: manifest.musicTracks,
       albums: manifest.albums || defaultAlbums()
     };
-    return fetch('https://api.jsonbin.io/v3/b/' + GALLERY_CONFIG.jsonbinId, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'X-Master-Key': GALLERY_CONFIG.jsonbinKey },
-      body: JSON.stringify(record)
-    });
+    var galleryRecord = {
+      monthPhotos: MONTH_SLUGS
+        .filter(function (s) { return manifest.monthPhotos[s] && manifest.monthPhotos[s].length; })
+        .map(function (s) { return { slug: s, urls: manifest.monthPhotos[s] }; })
+    };
+    return Promise.all([
+      putBin(GALLERY_CONFIG.jsonbinId, coreRecord),
+      putBin(GALLERY_CONFIG.galleryBinId, galleryRecord)
+    ]);
   }
 
   function escapeHtml(s) {
@@ -5703,14 +5725,21 @@ var qrcode = function() {
     if (typeof renderPlaylistUI === 'function') renderPlaylistUI();
   }
 
+  function getBin(binId) {
+    return fetch('https://api.jsonbin.io/v3/b/' + binId + '/latest', {
+      headers: { 'X-Master-Key': GALLERY_CONFIG.jsonbinKey }
+    }).then(function (r) { return r.ok ? r.json() : null; });
+  }
+
   function loadManifest() {
     if (!isConfigured()) { renderPhotoboothGrid(); renderWishThread(); applyCelebrationState(); return; }
-    fetch('https://api.jsonbin.io/v3/b/' + GALLERY_CONFIG.jsonbinId + '/latest', {
-      headers: { 'X-Master-Key': GALLERY_CONFIG.jsonbinKey }
-    })
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (data) {
-        var record = data && data.record;
+    Promise.all([
+      getBin(GALLERY_CONFIG.jsonbinId),
+      getBin(GALLERY_CONFIG.galleryBinId)
+    ])
+      .then(function (results) {
+        var record = results[0] && results[0].record;
+        var galleryRecord = results[1] && results[1].record;
         manifest.albums = (record && Array.isArray(record.albums) && record.albums.length)
           ? record.albums
           : defaultAlbums();
@@ -5725,7 +5754,7 @@ var qrcode = function() {
             setTileCover(i, entry.url);
           }
         });
-        var monthPhotosArr = record && Array.isArray(record.monthPhotos) ? record.monthPhotos : [];
+        var monthPhotosArr = galleryRecord && Array.isArray(galleryRecord.monthPhotos) ? galleryRecord.monthPhotos : [];
         monthPhotosArr.forEach(function (entry) {
           if (MONTH_SLUGS.indexOf(entry.slug) !== -1 && Array.isArray(entry.urls)) {
             manifest.monthPhotos[entry.slug] = entry.urls;
