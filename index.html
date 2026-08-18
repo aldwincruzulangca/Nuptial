@@ -6601,45 +6601,143 @@ var qrcode = function() {
     stickerTargetArr = arr;
   }
 
-  // No pre-made stickers/frames ship with this template (the source art was
-  // birthday-themed and wouldn't fit a gala) — capture/record still works
-  // fully; add gala-appropriate sticker/frame assets here later the same way
-  // the birthday site's were built (see imgproc/ pipeline).
+  // No pre-made stickers ship with this template — capture/record still
+  // works fully; add couple cutout stickers here later the same way the
+  // Debut site's were built (rembg cutout -> crop to bbox -> base64).
   var STICKER_LIBRARY = [];
 
   var FRAME_LIBRARY = [
-    { id: 'classic', label: 'Classic', src: null, orientation: 'both' }
+    { id: 'straight', label: 'Classic', style: 'straight' },
+    { id: 'wave', label: 'Wavy', style: 'wave' },
+    { id: 'dashed', label: 'Dashed', style: 'dashed' },
+    { id: 'dashdot', label: 'Dash-Dot', style: 'dashdot' }
   ];
-  var selectedFrameSrc = null;
+  var selectedFrameStyle = 'straight';
 
-  function buildFrameSvg(w, h) {
+  // Same wave-offset technique as the Debut site's frame: walk the four
+  // straight edges of a rounded rect and ripple each one with a sine wave
+  // that zero-crosses at both ends, so it always meets the corner arcs
+  // cleanly. Rendered as a polyline (round line-join smooths the facets).
+  function wavyRoundedRectPath(x, y, w, h, rx, amp, wavelen) {
+    var ptsPerCycle = 8;
+    function cyclesFor(len) { return Math.max(2, Math.round(len / wavelen)); }
+    function edgePoints(len, cycles, mapFn) {
+      var n = cycles * ptsPerCycle;
+      var pts = [];
+      for (var k = 0; k <= n; k++) {
+        var t = k / n;
+        var off = amp * Math.sin(2 * Math.PI * cycles * t);
+        pts.push(mapFn(t, off, len));
+      }
+      return pts;
+    }
+    function lineTo(pts) {
+      return pts.map(function (p) { return 'L' + p.x.toFixed(2) + ',' + p.y.toFixed(2); }).join('');
+    }
+    var topLen = w - 2 * rx, rightLen = h - 2 * rx, botLen = w - 2 * rx, leftLen = h - 2 * rx;
+    var top = edgePoints(topLen, cyclesFor(topLen), function (t, off, len) { return { x: x + rx + t * len, y: y + off }; });
+    var right = edgePoints(rightLen, cyclesFor(rightLen), function (t, off, len) { return { x: x + w + off, y: y + rx + t * len }; });
+    var bottom = edgePoints(botLen, cyclesFor(botLen), function (t, off, len) { return { x: x + w - rx - t * len, y: y + h + off }; });
+    var left = edgePoints(leftLen, cyclesFor(leftLen), function (t, off, len) { return { x: x + off, y: y + h - rx - t * len }; });
+    return 'M' + top[0].x.toFixed(2) + ',' + top[0].y.toFixed(2) +
+      lineTo(top.slice(1)) +
+      'A' + rx.toFixed(2) + ',' + rx.toFixed(2) + ' 0 0 1 ' + (x + w).toFixed(2) + ',' + (y + rx).toFixed(2) +
+      lineTo(right.slice(1)) +
+      'A' + rx.toFixed(2) + ',' + rx.toFixed(2) + ' 0 0 1 ' + (x + w - rx).toFixed(2) + ',' + (y + h).toFixed(2) +
+      lineTo(bottom.slice(1)) +
+      'A' + rx.toFixed(2) + ',' + rx.toFixed(2) + ' 0 0 1 ' + x.toFixed(2) + ',' + (y + h - rx).toFixed(2) +
+      lineTo(left.slice(1)) +
+      'A' + rx.toFixed(2) + ',' + rx.toFixed(2) + ' 0 0 1 ' + (x + rx).toFixed(2) + ',' + y.toFixed(2) +
+      'Z';
+  }
+
+  // One symmetric teardrop/petal outline, stroked from its base (cx,cy) out
+  // to a rounded tip and back — used for both the flower's petals and its
+  // small leaves, just with different length/width.
+  function petalPath(cx, cy, angleDeg, length, width) {
+    var a = angleDeg * Math.PI / 180;
+    var dx = Math.cos(a), dy = Math.sin(a);
+    var px = -dy, py = dx;
+    function pt(along, across) { return { x: cx + dx * along + px * across, y: cy + dy * along + py * across }; }
+    var tip = pt(length, 0);
+    var c1 = pt(length * 0.28, width * 0.5), c2 = pt(length * 0.78, width * 0.42);
+    var c3 = pt(length * 0.78, -width * 0.42), c4 = pt(length * 0.28, -width * 0.5);
+    return 'M' + cx.toFixed(3) + ',' + cy.toFixed(3) +
+      ' C' + c1.x.toFixed(3) + ',' + c1.y.toFixed(3) + ' ' + c2.x.toFixed(3) + ',' + c2.y.toFixed(3) + ' ' + tip.x.toFixed(3) + ',' + tip.y.toFixed(3) +
+      ' C' + c3.x.toFixed(3) + ',' + c3.y.toFixed(3) + ' ' + c4.x.toFixed(3) + ',' + c4.y.toFixed(3) + ' ' + cx.toFixed(3) + ',' + cy.toFixed(3) + 'Z';
+  }
+
+  // A small vine-and-bloom flourish for the frame's two opposite corners.
+  // Built in a 0..1 local square (corner at the origin, growing toward the
+  // frame's interior at +x/+y) so the same markup can be reused rotated 180°
+  // for the mirrored corner. `vector-effect="non-scaling-stroke"` keeps the
+  // hairline stroke width constant in real pixels even though the group
+  // around it is scaled up to size the whole motif.
+  function flowerMotifSvg(strokeColor, strokeW) {
+    var bloomCx = 0.6, bloomCy = 0.6;
+    var petals = '';
+    var petalCount = 5;
+    for (var i = 0; i < petalCount; i++) {
+      var ang = -90 + (360 / petalCount) * i;
+      petals += '<path d="' + petalPath(bloomCx, bloomCy, ang, 0.22, 0.15) + '" fill="none" stroke="' + strokeColor + '" stroke-width="' + strokeW + '" vector-effect="non-scaling-stroke"/>';
+    }
+    var stem = '<path d="M0,0 C0.08,0.3 0.26,0.18 ' + bloomCx + ',' + bloomCy + '" fill="none" stroke="' + strokeColor + '" stroke-width="' + strokeW + '" stroke-linecap="round" vector-effect="non-scaling-stroke"/>';
+    var leaf1 = '<path d="' + petalPath(0.2, 0.28, 42, 0.13, 0.065) + '" fill="none" stroke="' + strokeColor + '" stroke-width="' + strokeW + '" vector-effect="non-scaling-stroke"/>';
+    var leaf2 = '<path d="' + petalPath(0.38, 0.13, -48, 0.11, 0.055) + '" fill="none" stroke="' + strokeColor + '" stroke-width="' + strokeW + '" vector-effect="non-scaling-stroke"/>';
+    var center = '<circle cx="' + bloomCx + '" cy="' + bloomCy + '" r="0.032" fill="' + strokeColor + '"/>';
+    return stem + leaf1 + leaf2 + petals + center;
+  }
+
+  function buildFrameSvg(w, h, style) {
+    style = style || 'straight';
     var m = Math.min(w, h);
     var inset = m * 0.025;
-    var strokeW = m * 0.028;
     var rx = m * 0.07;
-    var dotBig = m * 0.02;
-    var dotSm = m * 0.012;
-    var pad = m * 0.09;
-    var hair = (m * 0.004).toFixed(2);
+    var strokeW = m * 0.006;   // an elegant, thin border (~1.5mm at photo scale)
+    var flourishW = m * 0.002; // the corner flowers are drawn even finer (~0.5mm)
+    var rectX = inset, rectY = inset, rectW = w - 2 * inset, rectH = h - 2 * inset;
+    // Blue ribbon with strokes of silver and gold running through it.
+    var borderDefs = '<defs><linearGradient id="frBlue" x1="0" y1="0" x2="1" y2="1">' +
+      '<stop offset="0%" stop-color="#1f3a5c"/>' +
+      '<stop offset="22%" stop-color="#476081"/>' +
+      '<stop offset="42%" stop-color="#cfd9e4"/>' +
+      '<stop offset="55%" stop-color="#e9c349"/>' +
+      '<stop offset="68%" stop-color="#cfd9e4"/>' +
+      '<stop offset="85%" stop-color="#476081"/>' +
+      '<stop offset="100%" stop-color="#1f3a5c"/>' +
+      '</linearGradient></defs>';
+
+    var border;
+    if (style === 'wave') {
+      var d = wavyRoundedRectPath(rectX, rectY, rectW, rectH, rx, m * 0.009, m * 0.09);
+      border = '<path d="' + d + '" fill="none" stroke="url(#frBlue)" stroke-width="' + strokeW + '" stroke-linejoin="round"/>';
+    } else {
+      var dashAttr = '', capAttr = '';
+      if (style === 'dashed') {
+        dashAttr = ' stroke-dasharray="' + (m * 0.03).toFixed(1) + ' ' + (m * 0.018).toFixed(1) + '"';
+      } else if (style === 'dashdot') {
+        dashAttr = ' stroke-dasharray="' + (m * 0.03).toFixed(1) + ' ' + (m * 0.02).toFixed(1) + ' ' + (m * 0.002).toFixed(2) + ' ' + (m * 0.02).toFixed(1) + '"';
+        capAttr = ' stroke-linecap="round"';
+      }
+      border = '<rect x="' + rectX + '" y="' + rectY + '" width="' + rectW + '" height="' + rectH + '" rx="' + rx + '" fill="none" stroke="url(#frBlue)" stroke-width="' + strokeW + '"' + dashAttr + capAttr + '/>';
+    }
+
+    var cornerSize = m * 0.24;
+    // Alternate the two corner flowers gold / silver so both accent metals show.
+    var flourishGold = flowerMotifSvg('#e9c349', flourishW);
+    var flourishSilver = flowerMotifSvg('#cfd9e4', flourishW);
+    var topLeft = '<g transform="translate(' + rectX + ',' + rectY + ') scale(' + cornerSize + ')">' + flourishGold + '</g>';
+    var bottomRight = '<g transform="translate(' + (rectX + rectW) + ',' + (rectY + rectH) + ') rotate(180) scale(' + cornerSize + ')">' + flourishSilver + '</g>';
+
     return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + w + ' ' + h + '">' +
-      '<defs><linearGradient id="fr" x1="0" y1="0" x2="1" y2="1">' +
-      '<stop offset="0%" stop-color="#f0a0b8"/><stop offset="25%" stop-color="#f8c99a"/>' +
-      '<stop offset="50%" stop-color="#f3dd94"/><stop offset="75%" stop-color="#a4cdec"/>' +
-      '<stop offset="100%" stop-color="#c6b6e8"/></linearGradient></defs>' +
-      '<rect x="' + inset + '" y="' + inset + '" width="' + (w - 2 * inset) + '" height="' + (h - 2 * inset) + '" rx="' + rx + '" fill="none" stroke="url(#fr)" stroke-width="' + strokeW + '"/>' +
-      '<circle cx="' + pad + '" cy="' + pad + '" r="' + dotBig + '" fill="#f0a0b8" stroke="#fff" stroke-width="' + hair + '"/>' +
-      '<circle cx="' + (pad * 1.7) + '" cy="' + (pad * 0.55) + '" r="' + dotSm + '" fill="#e0b364" stroke="#fff" stroke-width="' + hair + '"/>' +
-      '<circle cx="' + (w - pad) + '" cy="' + pad + '" r="' + dotBig + '" fill="#a4cdec" stroke="#fff" stroke-width="' + hair + '"/>' +
-      '<circle cx="' + (w - pad * 1.7) + '" cy="' + (pad * 0.55) + '" r="' + dotSm + '" fill="#c6b6e8" stroke="#fff" stroke-width="' + hair + '"/>' +
-      '<circle cx="' + pad + '" cy="' + (h - pad) + '" r="' + dotBig + '" fill="#b3e0c2" stroke="#fff" stroke-width="' + hair + '"/>' +
-      '<circle cx="' + (w - pad) + '" cy="' + (h - pad) + '" r="' + dotBig + '" fill="#f3dd94" stroke="#fff" stroke-width="' + hair + '"/>' +
+      borderDefs + border + topLeft + bottomRight +
       '</svg>';
   }
 
   function refreshFrameOverlay() {
     var w = camOrientation === 'portrait' ? 720 : 1280;
     var h = camOrientation === 'portrait' ? 1280 : 720;
-    var src = selectedFrameSrc || ('data:image/svg+xml;base64,' + btoa(buildFrameSvg(w, h)));
+    var src = 'data:image/svg+xml;base64,' + btoa(buildFrameSvg(w, h, selectedFrameStyle));
     camFrameImg.src = src;
     camPreviewFrameImg.src = src;
   }
@@ -6651,35 +6749,20 @@ var qrcode = function() {
   }
   function renderFrameTray() {
     frameTray.innerHTML = '';
-    var available = FRAME_LIBRARY.filter(function (item) {
-      return item.orientation === 'both' || item.orientation === camOrientation;
-    });
-    // The selected frame no longer fits this orientation (e.g. a landscape frame
-    // stays selected while switching to portrait) — fall back to Classic.
-    if (selectedFrameSrc && !available.some(function (item) { return item.src === selectedFrameSrc; })) {
-      selectedFrameSrc = null;
-      refreshFrameOverlay();
-    }
-    available.forEach(function (item) {
+    FRAME_LIBRARY.forEach(function (item) {
       var thumb = document.createElement('button');
       thumb.type = 'button';
-      thumb.className = 'sticker-thumb' + (item.src === selectedFrameSrc ? ' is-selected' : '');
-      var thumbSrc = item.src || ('data:image/svg+xml;base64,' + btoa(buildFrameSvg(60, 60)));
+      thumb.className = 'sticker-thumb' + (item.style === selectedFrameStyle ? ' is-selected' : '');
+      var thumbSrc = 'data:image/svg+xml;base64,' + btoa(buildFrameSvg(60, 60, item.style));
       thumb.innerHTML = '<img src="' + thumbSrc + '" alt="' + item.label + '">';
       thumb.title = item.label;
       thumb.addEventListener('click', function () {
-        selectedFrameSrc = item.src;
+        selectedFrameStyle = item.style;
         refreshFrameOverlay();
         renderFrameTray();
       });
       frameTray.appendChild(thumb);
     });
-    if (!available.length) {
-      var note = document.createElement('p');
-      note.className = 'cam-hint';
-      note.textContent = 'No ' + camOrientation + ' frames yet — using Classic.';
-      frameTray.appendChild(note);
-    }
   }
   renderFrameTray();
   camFrameToggleBtn.addEventListener('click', function () {
@@ -7425,7 +7508,7 @@ var qrcode = function() {
   // Frame + caption are baked on top at final-save time (not at shutter press) so
   // the frame stays swappable both before the shot (live tray) and after (edit tray).
   function bakeFrameAndCaption(ctx, w, h, cb) {
-    var frameSrc = selectedFrameSrc || ('data:image/svg+xml;base64,' + btoa(buildFrameSvg(w, h)));
+    var frameSrc = 'data:image/svg+xml;base64,' + btoa(buildFrameSvg(w, h, selectedFrameStyle));
     var frameImg = new Image();
     frameImg.onload = function () {
       ctx.drawImage(frameImg, 0, 0, w, h);
