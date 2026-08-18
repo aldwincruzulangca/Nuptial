@@ -609,6 +609,7 @@
   }
   .send-btn svg { width: 17px; height: 17px; }
   .send-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .send-btn:disabled { opacity: 0.4; filter: grayscale(0.5); cursor: not-allowed; box-shadow: none; }
   .rsvp-note { font-size: 11.5px; color: var(--ink-soft); margin-top: 12px; text-align: center; }
   .rsvp-note.ok { color: var(--c-pin); }
   .rsvp-note.err { color: var(--c-heart); }
@@ -819,6 +820,7 @@
   .cam-msg { font-size: 12px; color: rgba(255,255,255,0.75); margin: 14px 0 0; min-height: 14px; }
   .cam-msg.err { color: #f0a0b8; }
   .cam-msg.ok { color: #b3e0c2; }
+  .cam-msg.warn { color: var(--butter); }
 
   .cam-live:not([hidden]), .cam-preview:not([hidden]) {
     width: 100%; display: flex; flex-direction: column; align-items: center; gap: 14px;
@@ -7433,6 +7435,7 @@ var qrcode = function() {
     camLive.hidden = true;
     camPreview.hidden = false;
     camSaveMsg.textContent = '';
+    applySaveLock();
     stopCamera();
     clearStickers();
     refreshPreviewFrameSize();
@@ -7936,17 +7939,25 @@ var qrcode = function() {
     }, true);
   });
 
-  // Photobooth: the tab and party-shots grid stay viewable, only opening the
-  // camera itself is locked until the party.
+  // Photobooth: the camera is open to everyone at any time (practice shots,
+  // frame try-ons). Saving a shot is admin-only for now — not tied to the
+  // (placeholder) party date — see applySaveLock().
+  var SAVE_LOCK_MESSAGE = 'Saving is admin-only for now — flag down the wedding team to save your shot!';
   var camLaunchNote = document.getElementById('camLaunchNote');
-  camOpenBtn.addEventListener('click', function (e) {
-    if (isBeforeParty()) {
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      camLaunchNote.textContent = PARTY_LOCK_MESSAGE;
-      camLaunchNote.className = 'rsvp-note';
+  if (!isAdminUnlocked()) {
+    camLaunchNote.textContent = SAVE_LOCK_MESSAGE;
+    camLaunchNote.className = 'rsvp-note';
+  }
+
+  function applySaveLock() {
+    if (camMode !== 'photobooth') { camSaveBtn.disabled = false; return; }
+    var locked = !isAdminUnlocked();
+    camSaveBtn.disabled = locked;
+    if (locked) {
+      camSaveMsg.textContent = SAVE_LOCK_MESSAGE;
+      camSaveMsg.className = 'cam-msg warn';
     }
-  }, true);
+  }
 
   var pendingWishPhotoBlob = null;
   var pendingWishPhotoPreviewUrl = null;
