@@ -1002,6 +1002,11 @@
   .closing-card p { font-size: 13.5px; color: var(--ink-soft); margin: 0; }
 
   footer.sig { text-align: center; padding: 26px 20px 0; font-size: 11.5px; color: var(--ink-soft); }
+  .visit-counter:not([hidden]) {
+    display: flex; align-items: center; justify-content: center; gap: 4px;
+    margin: 6px auto 0; font-size: 11px; color: var(--ink-soft);
+  }
+  .visit-counter svg { width: 12px; height: 12px; flex: none; }
 
   /* ---- Wishes / guestbook (revealed by the admin celebration switch) ---- */
   .celeb-admin:not([hidden]) {
@@ -2212,7 +2217,13 @@
     <p class="qr-contact-note">Contact mobile: 09762373212 / 09153703821 &middot; email: aldwincruzulangca@gmail.com if you wish to acquire the same Occasion Digital Invitation.</p>
   </section>
 
-  <footer class="sig">This invitation is up through [End Date].</footer>
+  <footer class="sig">
+    This invitation is up through [End Date].
+    <p class="visit-counter" id="visitCounter" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
+      <span id="visitCountNum">0</span>
+    </p>
+  </footer>
 </div>
 
 <nav class="tabbar" aria-label="Quick navigation">
@@ -8135,4 +8146,34 @@ var qrcode = function() {
   });
 
   loadManifest();
+
+  /* ---- Visit counter: a global tally in the same jsonbin, incremented on
+     every page load from any visitor/browser. Kept out of the manifest/
+     persistManifest() path (which several unrelated admin actions also
+     write through) so a slow visit-count round trip can never clobber or
+     be clobbered by an admin save — it does its own isolated fetch-latest,
+     increment, PUT-back. Uses the core bin (not the gallery bin) since it's
+     a tiny scalar unrelated to monthPhotos. ---- */
+  (function () {
+    var counterEl = document.getElementById('visitCounter');
+    var numEl = document.getElementById('visitCountNum');
+    if (!isConfigured()) return;
+    fetch('https://api.jsonbin.io/v3/b/' + GALLERY_CONFIG.jsonbinId + '/latest', {
+      headers: { 'X-Master-Key': GALLERY_CONFIG.jsonbinKey }
+    })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        var record = (data && data.record) || {};
+        var count = (typeof record.visitCount === 'number' ? record.visitCount : 0) + 1;
+        numEl.textContent = count;
+        counterEl.hidden = false;
+        record.visitCount = count;
+        return fetch('https://api.jsonbin.io/v3/b/' + GALLERY_CONFIG.jsonbinId, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'X-Master-Key': GALLERY_CONFIG.jsonbinKey },
+          body: JSON.stringify(record)
+        });
+      })
+      .catch(function () {});
+  })();
 </script>
