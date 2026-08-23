@@ -378,6 +378,7 @@
 
   /* ---- Info pills ---- */
   .info-pills { display: flex; flex-direction: column; gap: 12px; }
+  .info-pills[hidden] { display: none; }
   .info-pill {
     display: flex; align-items: center; gap: 12px;
     background: var(--card);
@@ -466,6 +467,7 @@
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     text-align: center; cursor: pointer; font: inherit; padding: 10px;
   }
+  .eighteens-item[hidden] { display: none; }
   .eighteens-item:active { transform: scale(0.97); }
   .eighteens-item:focus-visible { outline: 2px solid var(--c-cal); outline-offset: 2px; }
   .eighteens-item .ico {
@@ -764,6 +766,13 @@
   .admin-msg { font-size: 11.5px; color: var(--ink-soft); margin: 10px 0 0; min-height: 14px; }
   .admin-msg.err { color: var(--c-heart); }
   .admin-msg.ok { color: var(--c-pin); }
+
+  /* ---- Show/Hide Sections checklist (admin panel) ---- */
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; color: var(--ink); cursor: pointer; }
+  .toggle-row:last-child { border-bottom: none; }
+  .check-circle { appearance: none; -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--line); background: var(--card-solid); cursor: pointer; position: relative; flex-shrink: 0; margin: 0; }
+  .check-circle:checked { background: var(--c-cal); border-color: var(--c-cal); }
+  .check-circle:checked::after { content: ''; position: absolute; left: 7px; top: 3px; width: 5px; height: 10px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
 
   .cover-picker-block { margin-top: 16px; }
   .cover-picker-block label { display: block; font-size: 11.5px; font-weight: 500; color: var(--ink-soft); margin-bottom: 8px; }
@@ -1126,6 +1135,7 @@
     z-index: 55; display: flex; flex-direction: column; align-items: center;
     gap: 10px;
   }
+  .music-widget[hidden] { display: none; }
   .music-toggle {
     width: 44px; height: 44px; border-radius: 50% !important; border: 1px solid var(--line);
     background: rgba(255, 255, 255, 0.75); color: var(--c-cake); cursor: pointer;
@@ -1245,6 +1255,7 @@
     transition: filter 0.2s ease;
   }
   nav.tabbar a.active { color: var(--c-cal); }
+  nav.tabbar a[hidden] { display: none; }
   nav.tabbar a:focus-visible { outline: 2px solid var(--c-pin); outline-offset: 2px; }
 
   @media (prefers-reduced-motion: reduce) {
@@ -1428,6 +1439,11 @@
        naturally land side by side as the one deliberate 2-up pairing. */
 
     #details { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+    /* #details sets its own `display` here, and an id selector always beats
+       the browser's built-in `[hidden] { display: none }` rule on
+       specificity alone -- without this, hiding the Details tab from the
+       admin checklist would do nothing at this breakpoint. */
+    #details[hidden] { display: none; }
     #details .info-pills { grid-column: 1 / -1; flex-direction: row; }
     #details .info-pill { flex: 1; }
 
@@ -1556,7 +1572,7 @@
 
   <section class="block" id="details">
 
-    <div class="info-pills" style="margin-bottom: 26px;">
+    <div class="info-pills" id="infoPillsBlock" style="margin-bottom: 26px;">
       <div class="info-pill cal">
         <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
         <div>
@@ -1672,7 +1688,7 @@
       </div>
     </div>
 
-    <div class="program-card">
+    <div class="program-card" id="celebrationTimelineCard">
       <div class="sub-head">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
         <h2>The Celebration of Love</h2>
@@ -1719,6 +1735,7 @@
       <div class="video-embed" id="videoEmbed"></div>
     </div>
 
+    <div id="journeyGalleryBlock">
     <div class="sub-head">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
       <h2>Our Journey</h2>
@@ -1740,6 +1757,7 @@
       <p class="gallery-note">Photos coming soon &mdash; upload a set from the admin panel and each tile lights up.</p>
     </div>
     <p class="rsvp-note" id="galleryLockNote" hidden></p>
+    </div>
 
     <div class="admin-zone">
       <button type="button" class="admin-toggle" id="adminToggle">
@@ -1817,6 +1835,11 @@
             <input type="file" id="musicUploadInput" accept="audio/*" multiple>
           </div>
           <p class="admin-msg" id="musicUploadMsg"></p>
+
+          <label style="margin-top: 18px; display: block;">Show / Hide Sections</label>
+          <div id="visibilityToggleList"></div>
+          <button type="button" class="pillbtn p3" id="visibilitySaveBtn" style="width: 100%;">Save Visibility</button>
+          <p class="admin-msg" id="visibilityMsg"></p>
         </div>
       </div>
     </div>
@@ -2231,15 +2254,15 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8 19 13M15 9h0M17.8 6.2 19 5M3 21l9-9M12.2 6.2 11 5"/></svg>
     Invite
   </a>
-  <a href="#details" data-target="details">
+  <a href="#details" data-target="details" id="navDetailsLink">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
     Details
   </a>
-  <a href="#gallery" data-target="gallery">
+  <a href="#gallery" data-target="gallery" id="navGalleryLink">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
     Gallery
   </a>
-  <a href="#photobooth" data-target="photobooth">
+  <a href="#photobooth" data-target="photobooth" id="navPhotoboothLink">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2Z"/><circle cx="12" cy="13" r="4"/></svg>
     Photobooth
   </a>
@@ -4589,10 +4612,43 @@ var qrcode = function() {
   }
   var HUES = ["rose","peach","butter","mint","sky","lilac"];
 
+  /* Admin-toggleable cards/tabs/features. `elId` is hidden/shown directly;
+     `kind: 'tab'` entries also hide the section they point to (`tabTarget`)
+     so a hidden tab can't be reached by clicking its (now-hidden) nav link
+     or via a stale URL hash. This site has no JS tab-switcher -- the
+     tabbar links are plain #anchor scroll links plus a scrollspy
+     IntersectionObserver -- so "guarding" a tab here means applyVisibility()
+     hides both the link and its target section directly (see below) rather
+     than redirecting away from a hidden page.
+     'video' and 'wishes' are deliberately left out of applyVisibility()'s
+     generic loop: videoLinkCard and wishesCard already have their own
+     content/date-driven hidden logic (renderVideoCard() / applyCelebrationState()
+     further down), so the toggle is folded directly into those functions
+     instead of fighting them for the same .hidden flag. */
+  var VISIBILITY_TOGGLES = [
+    { key: 'detailsTab', label: 'Details (tab)', elId: 'navDetailsLink', kind: 'tab', tabTarget: 'details' },
+    { key: 'venueInfo', label: 'Ceremony & Reception Info (within Details)', elId: 'infoPillsBlock', kind: 'card' },
+    { key: 'rsvp', label: 'RSVP (within Details)', elId: 'rsvpCard', kind: 'card' },
+    { key: 'celebrationTimeline', label: 'Celebration of Love — Timeline (within Details)', elId: 'celebrationTimelineCard', kind: 'card' },
+    { key: 'entourage', label: 'Entourage (within Details)', elId: 'entourageOpenBtn', kind: 'card' },
+    { key: 'dresscode', label: 'Dress Code (within Details)', elId: 'dresscodeOpenBtn', kind: 'card' },
+    { key: 'faq', label: 'FAQ (within Details)', elId: 'faqOpenBtn', kind: 'card' },
+    { key: 'galleryTab', label: 'Gallery (tab)', elId: 'navGalleryLink', kind: 'tab', tabTarget: 'gallery' },
+    { key: 'video', label: 'Watch the Video (within Gallery)', elId: 'videoLinkCard', kind: 'card' },
+    { key: 'journeyGallery', label: 'Our Journey — Photo Gallery (within Gallery)', elId: 'journeyGalleryBlock', kind: 'card' },
+    { key: 'photoboothTab', label: 'Photobooth (tab)', elId: 'navPhotoboothLink', kind: 'tab', tabTarget: 'photobooth' },
+    { key: 'music', label: 'Background Music Player', elId: 'musicWidget', kind: 'card' },
+    { key: 'wishes', label: 'Leave a Wish or Message (card)', elId: 'wishesCard', kind: 'card' }
+  ];
+  // Nothing hidden by default -- unlike the Christening template this was
+  // adapted from, there's no standing request to pre-hide any section here.
+  var DEFAULT_HIDDEN_TOGGLES = [];
+  var CUSTOM_VISIBILITY_KEYS = ['video', 'wishes'];
+
   // Declared up here (rather than near persistManifest/loadManifest further
   // down) because the tile/slideshow builders below read manifest.* at
   // definition time, before the fetch-backed load ever runs.
-  var manifest = { months: {}, monthPhotos: {}, photobooth: [], rsvps: [], wishes: [], celebrationLive: false, videoUrl: '', slideshowMode: { mode: 'covers', albumSlug: '' }, bannerUrl: '', avatarUrls: [], eighteensLists: {}, musicTracks: [], albums: null };
+  var manifest = { months: {}, monthPhotos: {}, photobooth: [], rsvps: [], wishes: [], celebrationLive: false, videoUrl: '', slideshowMode: { mode: 'covers', albumSlug: '' }, bannerUrl: '', avatarUrls: [], eighteensLists: {}, musicTracks: [], albums: null, hiddenToggles: DEFAULT_HIDDEN_TOGGLES.slice() };
 
   // Placeholder far-future date so the template defaults to its inviting
   // "before" copy — swap this for the real event's end time per client.
@@ -5713,7 +5769,8 @@ var qrcode = function() {
       avatarUrls: manifest.avatarUrls,
       eighteensLists: manifest.eighteensLists,
       musicTracks: manifest.musicTracks,
-      albums: manifest.albums || defaultAlbums()
+      albums: manifest.albums || defaultAlbums(),
+      hiddenToggles: manifest.hiddenToggles
     };
     var galleryRecord = {
       monthPhotos: MONTH_SLUGS
@@ -5725,6 +5782,52 @@ var qrcode = function() {
       putBin(GALLERY_CONFIG.galleryBinId, galleryRecord)
     ]);
   }
+
+  /* ---- Admin-controlled section visibility ---- */
+  function isToggleHidden(key) { return (manifest.hiddenToggles || []).indexOf(key) !== -1; }
+  function applyVisibility() {
+    VISIBILITY_TOGGLES.forEach(function (t) {
+      if (CUSTOM_VISIBILITY_KEYS.indexOf(t.key) !== -1) return;
+      var el = document.getElementById(t.elId);
+      if (el) el.hidden = isToggleHidden(t.key);
+      if (t.kind === 'tab' && t.tabTarget) {
+        var page = document.getElementById(t.tabTarget);
+        if (page) page.hidden = isToggleHidden(t.key);
+      }
+    });
+  }
+  function renderVisibilityChecklist() {
+    var wrap = document.getElementById('visibilityToggleList');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    VISIBILITY_TOGGLES.forEach(function (t) {
+      var row = document.createElement('label');
+      row.className = 'toggle-row';
+      var span = document.createElement('span');
+      span.textContent = t.label;
+      var box = document.createElement('input');
+      box.type = 'checkbox';
+      box.className = 'check-circle';
+      box.dataset.key = t.key;
+      box.checked = !isToggleHidden(t.key);
+      row.appendChild(span);
+      row.appendChild(box);
+      wrap.appendChild(row);
+    });
+  }
+  document.getElementById('visibilitySaveBtn').addEventListener('click', function () {
+    var msg = document.getElementById('visibilityMsg');
+    var boxes = Array.prototype.slice.call(document.querySelectorAll('#visibilityToggleList .check-circle'));
+    manifest.hiddenToggles = boxes.filter(function (b) { return !b.checked; }).map(function (b) { return b.dataset.key; });
+    applyVisibility();
+    renderVideoCard(manifest.videoUrl);
+    applyCelebrationState();
+    msg.textContent = isConfigured() ? 'Saving…' : 'Saved on this device (JSONBin isn’t configured).';
+    msg.className = 'admin-msg';
+    var p = isConfigured() ? persistManifest() : Promise.resolve();
+    p.then(function () { msg.textContent = 'Saved.'; msg.className = 'admin-msg ok'; })
+      .catch(function () { msg.textContent = 'Saved here, but couldn’t reach the shared list.'; msg.className = 'admin-msg err'; });
+  });
 
   function escapeHtml(s) {
     return String(s || '').replace(/[&<>"']/g, function (c) {
@@ -5808,6 +5911,7 @@ var qrcode = function() {
     document.getElementById('avatarUrlBtn').hidden = false;
     if (typeof renderAvatarManageTray === 'function') renderAvatarManageTray();
     if (typeof renderPlaylistUI === 'function') renderPlaylistUI();
+    renderVisibilityChecklist();
   }
 
   function getBin(binId) {
@@ -5817,7 +5921,7 @@ var qrcode = function() {
   }
 
   function loadManifest() {
-    if (!isConfigured()) { renderPhotoboothGrid(); renderWishThread(); applyCelebrationState(); return; }
+    if (!isConfigured()) { renderPhotoboothGrid(); renderWishThread(); applyVisibility(); applyCelebrationState(); return; }
     Promise.all([
       getBin(GALLERY_CONFIG.jsonbinId),
       getBin(GALLERY_CONFIG.galleryBinId)
@@ -5857,6 +5961,7 @@ var qrcode = function() {
         manifest.avatarUrls = (record && Array.isArray(record.avatarUrls)) ? record.avatarUrls : [];
         manifest.eighteensLists = (record && record.eighteensLists && typeof record.eighteensLists === 'object') ? record.eighteensLists : {};
         manifest.musicTracks = (record && Array.isArray(record.musicTracks)) ? record.musicTracks : [];
+        manifest.hiddenToggles = (record && Array.isArray(record.hiddenToggles)) ? record.hiddenToggles : DEFAULT_HIDDEN_TOGGLES.slice();
         renderSlideshow();
         syncSlideshowModeUI();
         applyBannerUrl();
@@ -5864,12 +5969,13 @@ var qrcode = function() {
         rebuildPlaylist();
         renderPhotoboothGrid();
         renderWishThread();
+        applyVisibility();
         renderVideoCard(manifest.videoUrl);
         applyCelebrationState();
         if (sessionStorage.getItem('emaGalleryAdmin') === '1') { revealAdminExtras(); }
         flushQueue();
       })
-      .catch(function () { renderPhotoboothGrid(); renderWishThread(); applyCelebrationState(); });
+      .catch(function () { renderPhotoboothGrid(); renderWishThread(); applyVisibility(); applyCelebrationState(); });
   }
   // Called at the very end of this script, once every DOM reference below is set up.
 
@@ -6518,7 +6624,7 @@ var qrcode = function() {
       html = '<a class="video-fallback-link" href="' + escapeHtml(url) + '" target="_blank" rel="noopener noreferrer">Watch Video &#8599;</a>';
     }
     videoEmbed.innerHTML = html;
-    videoLinkCard.hidden = false;
+    videoLinkCard.hidden = isToggleHidden('video');
     if (ytId) {
       initYouTubePlayer('ytVideoFrame');
     } else {
@@ -7864,7 +7970,7 @@ var qrcode = function() {
 
     closingHeadlineEl.textContent = closingLive ? THANKYOU_HEADLINE : DEFAULT_CLOSING_HEADLINE;
     closingBodyEl.textContent = closingLive ? THANKYOU_BODY : DEFAULT_CLOSING_BODY;
-    wishesCardEl.hidden = !showContent;
+    wishesCardEl.hidden = !showContent || isToggleHidden('wishes');
 
     if (isAdminUnlocked()) {
       celebAdmin.hidden = false;
