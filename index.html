@@ -1888,9 +1888,7 @@
             <button type="button" class="cam-icon-btn" id="camModeBtn" aria-label="Switch photo/video mode" aria-pressed="false">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7 16 12l7 5V7Z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
             </button>
-            <button type="button" class="cam-icon-btn" id="camOrientBtn" aria-label="Switch portrait/landscape">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="3" width="10" height="18" rx="2"/></svg>
-            </button>
+            
             <button type="button" class="shutter-btn" id="camShutterBtn" aria-label="Take photo"></button>
             <button type="button" class="cam-icon-btn" id="camFlipBtn" aria-label="Flip camera">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2.1 21 6l-4 3.9"/><path d="M3 12.5v-1a4 4 0 0 1 4-4h14"/><path d="M7 21.9 3 18l4-3.9"/><path d="M21 11.5v1a4 4 0 0 1-4 4H3"/></svg>
@@ -6674,7 +6672,7 @@ var qrcode = function() {
   var camVideo = document.getElementById('camVideo');
   var camFrameWrap = document.getElementById('camFrameWrap');
   var camFrameImg = document.getElementById('camFrameImg');
-  var camOrientBtn = document.getElementById('camOrientBtn');
+  var camControlsOverlay = document.querySelector('.cam-controls-overlay');
   var camFlipBtn = document.getElementById('camFlipBtn');
   var camShutterBtn = document.getElementById('camShutterBtn');
   var camPreview = document.getElementById('camPreview');
@@ -6696,7 +6694,7 @@ var qrcode = function() {
 
   var camStream = null;
   var camFacing = 'user';
-  var camOrientation = 'portrait';
+  var camOrientation = window.matchMedia('(orientation: landscape)').matches ? 'landscape' : 'portrait';
   var lastCaptureBlob = null;
   var lastCaptureType = 'photo';
   var activeStickers = [];
@@ -7548,15 +7546,23 @@ var qrcode = function() {
     startCamera();
   });
 
-  camOrientBtn.addEventListener('click', function () {
-    camOrientation = camOrientation === 'portrait' ? 'landscape' : 'portrait';
-    camFrameWrap.setAttribute('data-orientation', camOrientation);
-    camOrientBtn.setAttribute('aria-pressed', camOrientation === 'landscape' ? 'true' : 'false');
-    clearStickers();
-    refreshFrameOverlay();
-    refreshLiveFrameSize();
-    renderFrameTray();
-  });
+  function applyPhysicalOrientation() {
+    var next = window.matchMedia('(orientation: landscape)').matches ? 'landscape' : 'portrait';
+    if (camControlsOverlay) camControlsOverlay.classList.toggle('tilt-landscape', next === 'landscape');
+    if (next === camOrientation) return;
+    camOrientation = next;
+    if (!camLive.hidden) {
+      camFrameWrap.setAttribute('data-orientation', camOrientation);
+      clearStickers();
+      refreshFrameOverlay();
+      refreshLiveFrameSize();
+      renderFrameTray();
+    } else if (!camPreview.hidden) {
+      camPreviewWrap.setAttribute('data-orientation', camOrientation);
+      refreshPreviewFrameSize();
+    }
+  }
+  window.matchMedia('(orientation: landscape)').addEventListener('change', applyPhysicalOrientation);
 
   function enterPreview() {
     camPreviewWrap.setAttribute('data-orientation', camOrientation);
@@ -7715,7 +7721,6 @@ var qrcode = function() {
     recIndicator.hidden = false;
     camShutterBtn.classList.add('is-recording');
     camShutterBtn.setAttribute('aria-label', 'Stop recording');
-    camOrientBtn.disabled = true;
     camFlipBtn.disabled = true;
     camModeBtn.disabled = true;
 
@@ -7735,7 +7740,6 @@ var qrcode = function() {
     recIndicator.hidden = true;
     camShutterBtn.classList.remove('is-recording');
     camShutterBtn.setAttribute('aria-label', 'Start recording');
-    camOrientBtn.disabled = false;
     camFlipBtn.disabled = false;
     camModeBtn.disabled = false;
   }
