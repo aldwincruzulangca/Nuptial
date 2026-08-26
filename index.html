@@ -896,6 +896,15 @@
   .sticker-tray::-webkit-scrollbar { display: none; }
   .frame-thickness-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; font-family: var(--font-body); font-size: 12.5px; }
   .frame-thickness-row input { flex: 1; }
+  .collage-indicator {
+    position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.6); color: #fff; padding: 6px 14px; border-radius: 999px;
+    font-size: 12.5px; font-family: var(--font-body); z-index: 3;
+  }
+  .collage-tile-label { font-family: var(--font-body); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; margin: 10px 0 4px; color: var(--eyebrow-blue); }
+  .collage-tilt-hint { text-align: center; }
+  #camPreviewWrap.collage-landscape { width: 100vw !important; height: 100vh !important; position: fixed; inset: 0; z-index: 205; }
+  #camPreviewWrap.collage-portrait canvas { object-fit: contain; }
   .sticker-edit-bar { display: flex; gap: 16px; margin-top: 10px; font-family: var(--font-body); font-size: 12.5px; }
   .sticker-edit-bar:not([hidden]) { display: flex; }
   .sticker-edit-bar label { display: flex; align-items: center; gap: 6px; }
@@ -1886,6 +1895,7 @@
         <div class="cam-frame-wrap" id="camFrameWrap" data-orientation="portrait">
           <video id="camVideo" autoplay playsinline muted></video>
           <img class="cam-frame-overlay" id="camFrameImg" alt="" aria-hidden="true">
+          <div class="collage-indicator" id="collageIndicator" hidden><span id="collageProgressText"></span></div>
           <div class="rec-indicator" id="recIndicator" hidden>
             <span class="rec-dot"></span>
             <span id="recTimer">0:00</span> / 1:00
@@ -1925,6 +1935,7 @@
       <div class="cam-picker-toggle" id="camPickerToggle" hidden>
         <button type="button" class="pillbtn p3" id="camFrameToggleBtn">&#128444;&#65039; Frame</button>
         <button type="button" class="pillbtn p3" id="camStickerToggleBtn">&#10024; Stickers</button>
+        <button type="button" class="pillbtn p3" id="collageFrameToggleBtn" hidden>&#128444;&#65039; Photo Frames</button>
       </div>
       <div class="picker-block" id="framePickerBlock" hidden>
         <p class="cam-hint">Tap a frame to apply it &mdash; choose &ldquo;Classic&rdquo; for the default</p>
@@ -1933,6 +1944,7 @@
           <input type="range" id="frameThicknessSlider" min="0.4" max="2.5" step="0.1" value="1">
         </label>
       </div>
+      <p class="cam-hint collage-tilt-hint" id="collageTiltHint" hidden>&#128241; Tilt your phone sideways for the full 4-in-1 editing view</p>
       <div class="picker-block" id="stickerPickerBlock" hidden>
         <p class="cam-hint">Tap a sticker to add it &mdash; drag to move, pinch to resize &amp; rotate</p>
         <div class="sticker-tray" id="stickerTray"></div>
@@ -1940,6 +1952,17 @@
           <label>Size <input type="number" id="stickerSizeInput" min="10" max="400" step="1" inputmode="numeric">%</label>
           <label>Rotate <input type="number" id="stickerRotInput" min="-180" max="180" step="1" inputmode="numeric">&deg;</label>
         </div>
+      </div>
+      <div class="picker-block" id="collageFramePickerBlock" hidden>
+        <p class="cam-hint">Tap a frame for each photo</p>
+        <p class="collage-tile-label">Primary</p>
+        <div class="sticker-tray" id="collageFrameTray0"></div>
+        <p class="collage-tile-label">Secondary 1</p>
+        <div class="sticker-tray" id="collageFrameTray1"></div>
+        <p class="collage-tile-label">Secondary 2</p>
+        <div class="sticker-tray" id="collageFrameTray2"></div>
+        <p class="collage-tile-label">Secondary 3</p>
+        <div class="sticker-tray" id="collageFrameTray3"></div>
       </div>
     </div>
   </div>
@@ -6710,6 +6733,12 @@ var qrcode = function() {
   var camOrientation = window.matchMedia('(orientation: landscape)').matches ? 'landscape' : 'portrait';
   var lastCaptureBlob = null;
   var lastCaptureType = 'photo';
+  var COLLAGE_SHOT_COUNT = 4;
+  var COLLAGE_SHOT_LABELS = ['Primary shot', 'Secondary shot 1', 'Secondary shot 2', 'Secondary shot 3'];
+  var COLLAGE_TILE_RATIO = 3 / 2;
+  var camCollageMode = false;
+  var collageShots = [];
+  var collageTileFrameStyle = ['straight', 'straight', 'straight', 'straight'];
   var activeStickers = [];
   var previewStickers = [];
 
@@ -7096,6 +7125,7 @@ var qrcode = function() {
   function hidePickers() {
     framePickerBlock.hidden = true;
     stickerPickerBlock.hidden = true;
+    collageFramePickerBlock.hidden = true;
   }
   function renderFrameTray() {
     frameTray.innerHTML = '';
@@ -7115,6 +7145,206 @@ var qrcode = function() {
     });
   }
   renderFrameTray();
+
+  function collageRoundRectPath(ctx, x, y, w, h, r) {
+    r = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+  function collageThemeGradient(ctx, x0, y0, x1, y1) {
+    var g = ctx.createLinearGradient(x0, y0, x1, y1);
+    g.addColorStop(0, '#476081');
+    g.addColorStop(0.5, '#ba1a1a');
+    g.addColorStop(1, '#476081');
+    return g;
+  }
+  function loadSvgImage(svgString) {
+    return new Promise(function (resolve) {
+      var img = new Image();
+      img.onload = function () { resolve(img); };
+      img.src = 'data:image/svg+xml;base64,' + btoa(svgString);
+    });
+  }
+  function fitCollageTileRect(boxX, boxY, boxW, boxH) {
+    var targetRatio = COLLAGE_TILE_RATIO;
+    var w, h;
+    if (boxW / boxH > targetRatio) { h = boxH; w = h * targetRatio; }
+    else { w = boxW; h = w / targetRatio; }
+    return { x: boxX + (boxW - w) / 2, y: boxY + (boxH - h) / 2, w: w, h: h };
+  }
+  function drawCollagePhoto(ctx, shotCanvas, rect) {
+    var targetRatio = COLLAGE_TILE_RATIO;
+    var sw = shotCanvas.width, sh = shotCanvas.height;
+    var srcRatio = sw / sh;
+    var cropW, cropH, cropX, cropY;
+    if (srcRatio > targetRatio) { cropH = sh; cropW = sh * targetRatio; cropX = (sw - cropW) / 2; cropY = 0; }
+    else { cropW = sw; cropH = sw / targetRatio; cropX = 0; cropY = (sh - cropH) / 2; }
+    ctx.save();
+    collageRoundRectPath(ctx, rect.x, rect.y, rect.w, rect.h, rect.w * 0.025);
+    ctx.clip();
+    ctx.drawImage(shotCanvas, cropX, cropY, cropW, cropH, rect.x, rect.y, rect.w, rect.h);
+    ctx.restore();
+  }
+  function drawCollageTileFrame(ctx, rect, style) {
+    var svg = buildFrameSvg(Math.round(rect.w), Math.round(rect.h), style, selectedFrameThickness);
+    return loadSvgImage(svg).then(function (img) { ctx.drawImage(img, rect.x, rect.y, rect.w, rect.h); });
+  }
+  function wrapCollageText(ctx, text, cx, cy, maxWidth, lineHeight) {
+    var words = text.split(' ');
+    var lines = [], line = '';
+    words.forEach(function (word) {
+      var test = line ? line + ' ' + word : word;
+      if (ctx.measureText(test).width > maxWidth && line) { lines.push(line); line = word; }
+      else { line = test; }
+    });
+    if (line) lines.push(line);
+    var startY = cy - (lines.length - 1) * lineHeight / 2;
+    lines.forEach(function (l, i) { ctx.fillText(l, cx, startY + i * lineHeight); });
+  }
+  function fitCollageHeadline(ctx, text, maxWidth, maxHeight) {
+    var fontSize = maxHeight, lines = [text], lineHeight = fontSize;
+    do {
+      ctx.font = '700 ' + Math.round(fontSize) + 'px Georgia, serif';
+      lineHeight = fontSize * 1.32;
+      var words = text.split(' '), line = '';
+      lines = [];
+      words.forEach(function (word) {
+        var test = line ? line + ' ' + word : word;
+        if (ctx.measureText(test).width > maxWidth && line) { lines.push(line); line = word; }
+        else { line = test; }
+      });
+      if (line) lines.push(line);
+      var maxLineW = 0;
+      lines.forEach(function (l) { maxLineW = Math.max(maxLineW, ctx.measureText(l).width); });
+      if (lines.length * lineHeight <= maxHeight && maxLineW <= maxWidth) break;
+      fontSize *= 0.92;
+    } while (fontSize > 8);
+    return { lines: lines, lineHeight: lineHeight, fontSize: fontSize };
+  }
+  function drawCollageHeadlineBlock(ctx, x, y, w, h, subTextCenterY) {
+    var headlineH = h * 0.52, subH = h * 0.16;
+    var fit = fitCollageHeadline(ctx, 'Angela &amp; James', w * 0.94, headlineH * 0.94);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '700 ' + Math.round(fit.fontSize) + 'px Georgia, serif';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = fit.fontSize * 0.12;
+    var cx = x + w / 2;
+    var startY = y + headlineH / 2 - (fit.lines.length - 1) * fit.lineHeight / 2;
+    fit.lines.forEach(function (line, i) {
+      var ty = startY + i * fit.lineHeight;
+      ctx.strokeStyle = '#fffaf2';
+      ctx.strokeText(line, cx, ty);
+      ctx.fillStyle = collageThemeGradient(ctx, x, ty - fit.fontSize / 2, x + w, ty + fit.fontSize / 2);
+      ctx.fillText(line, cx, ty);
+    });
+    var subFontSize = Math.round(subH * 0.44);
+    var subLineH = subH * 0.42;
+    var subText = 'thank you for celebrating with us';
+    var subMaxW = w * 0.92;
+    ctx.font = '600 ' + subFontSize + 'px Georgia, serif';
+    var subCy = subTextCenterY != null ? subTextCenterY : (y + h - subH / 2);
+    ctx.fillStyle = '#43474d';
+    wrapCollageText(ctx, subText, cx, subCy, subMaxW, subLineH);
+  }
+  function renderCollageCanvas() {
+    var W = 1800, H = 1200;
+    camCanvas.width = W;
+    camCanvas.height = H;
+    var ctx = camCanvas.getContext('2d');
+    var bg = ctx.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0, '#f9f9fb');
+    bg.addColorStop(1, '#e7eefc');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+
+    var pad = Math.round(W * 0.035), gap = Math.round(W * 0.03);
+    var row1H = Math.round(H * 0.5), row2H = H - row1H;
+    var boxW3 = (W - pad * 2 - gap * 2) / 3;
+    var secY = row1H + gap / 2, secH = row2H - gap / 2 - pad / 2;
+
+    var textColW = Math.round(W * 0.3);
+    var primaryBoxX = textColW + gap / 2, primaryBoxY = pad;
+    var primaryBoxW = W - textColW - pad - gap / 2, primaryBoxH = row1H - pad - gap / 2;
+    var primaryFit = fitCollageTileRect(primaryBoxX, primaryBoxY, primaryBoxW, primaryBoxH);
+    var growF = 1.15;
+    var primW = primaryFit.w * growF, primH = primaryFit.h * growF;
+    var primCenterY = primaryFit.y + primaryFit.h / 2;
+    var primaryTopY = primCenterY - primH / 2;
+
+    var sec1RectPre = fitCollageTileRect(pad, secY, boxW3, secH);
+    var topMargin = primaryTopY;
+    var bottomMargin = H - (sec1RectPre.y + sec1RectPre.h);
+    var shiftDown = (bottomMargin - topMargin) / 2;
+    secY += shiftDown;
+
+    var sec1Rect = fitCollageTileRect(pad, secY, boxW3, secH);
+    var sec2Rect = fitCollageTileRect(pad + boxW3 + gap, secY, boxW3, secH);
+    var sec3Rect = fitCollageTileRect(pad + (boxW3 + gap) * 2, secY, boxW3, secH);
+    var primaryRect = { x: (sec3Rect.x + sec3Rect.w) - primW, y: primaryTopY + shiftDown, w: primW, h: primH };
+
+    var textBoxX = pad, textBoxY = pad;
+    var textBoxW = primaryRect.x - gap - pad;
+    var textBoxH = row1H - pad - gap / 2;
+
+    drawCollagePhoto(ctx, collageShots[0], primaryRect);
+    drawCollagePhoto(ctx, collageShots[1], sec1Rect);
+    drawCollagePhoto(ctx, collageShots[2], sec2Rect);
+    drawCollagePhoto(ctx, collageShots[3], sec3Rect);
+    var subTextCenterY = (primaryRect.y + primaryRect.h + sec1Rect.y) / 2;
+    drawCollageHeadlineBlock(ctx, textBoxX, textBoxY, textBoxW, textBoxH, subTextCenterY);
+
+    return Promise.all([
+      drawCollageTileFrame(ctx, primaryRect, collageTileFrameStyle[0]),
+      drawCollageTileFrame(ctx, sec1Rect, collageTileFrameStyle[1]),
+      drawCollageTileFrame(ctx, sec2Rect, collageTileFrameStyle[2]),
+      drawCollageTileFrame(ctx, sec3Rect, collageTileFrameStyle[3])
+    ]).then(function () {
+      var outerSvg = buildFrameSvg(W, H, 'wave', selectedFrameThickness);
+      return loadSvgImage(outerSvg).then(function (img) { ctx.drawImage(img, 0, 0, W, H); });
+    });
+  }
+  function captureCollageShot() {
+    var vw = camVideo.videoWidth, vh = camVideo.videoHeight;
+    if (!vw || !vh) return;
+    var shotCanvas = document.createElement('canvas');
+    shotCanvas.width = vw;
+    shotCanvas.height = vh;
+    var sctx = shotCanvas.getContext('2d');
+    sctx.save();
+    if (camFacing === 'user') { sctx.translate(vw, 0); sctx.scale(-1, 1); }
+    sctx.drawImage(camVideo, 0, 0, vw, vh);
+    sctx.restore();
+    collageShots.push(shotCanvas);
+    updateCollageProgressUI();
+    if (collageShots.length >= COLLAGE_SHOT_COUNT) composeCollage();
+  }
+  function composeCollage() {
+    updateCollageProgressUI();
+    document.fonts.ready.then(function () {
+      renderCollageCanvas().then(function () {
+        uploadedImageRatio = null;
+        camCollageMode = false;
+        collageIndicator.hidden = true;
+        camCanvas.toBlob(function (blob) {
+          lastCaptureBlob = blob;
+          finishEnterPreviewFromCanvas('Save Collage', 'collage');
+          renderCollageFrameTrays();
+        }, 'image/jpeg', 0.92);
+      });
+    });
+  }
+  function recomposeCollage() {
+    renderCollageCanvas().then(function () {
+      camCanvas.toBlob(function (blob) { lastCaptureBlob = blob; }, 'image/jpeg', 0.92);
+    });
+  }
+
   camFrameToggleBtn.addEventListener('click', function () {
     var show = framePickerBlock.hidden;
     hidePickers();
@@ -7125,6 +7355,39 @@ var qrcode = function() {
     hidePickers();
     stickerPickerBlock.hidden = !show;
   });
+  var collageFramePickerBlock = document.getElementById('collageFramePickerBlock');
+  var collageFrameToggleBtn = document.getElementById('collageFrameToggleBtn');
+  var collageFrameTrays = [
+    document.getElementById('collageFrameTray0'),
+    document.getElementById('collageFrameTray1'),
+    document.getElementById('collageFrameTray2'),
+    document.getElementById('collageFrameTray3')
+  ];
+  collageFrameToggleBtn.addEventListener('click', function () {
+    var show = collageFramePickerBlock.hidden;
+    hidePickers();
+    collageFramePickerBlock.hidden = !show;
+  });
+  function renderCollageFrameTrays() {
+    collageTileFrameStyle.forEach(function (styleForTile, tileIndex) {
+      var tray = collageFrameTrays[tileIndex];
+      tray.innerHTML = '';
+      FRAME_LIBRARY.forEach(function (item) {
+        var thumb = document.createElement('button');
+        thumb.type = 'button';
+        thumb.className = 'sticker-thumb' + (item.style === styleForTile ? ' is-selected' : '');
+        var thumbSrc = 'data:image/svg+xml;base64,' + btoa(buildFrameSvg(60, 60, item.style, selectedFrameThickness));
+        thumb.innerHTML = '<img src="' + thumbSrc + '" alt="' + item.label + '">';
+        thumb.title = item.label;
+        thumb.addEventListener('click', function () {
+          collageTileFrameStyle[tileIndex] = item.style;
+          recomposeCollage();
+          renderCollageFrameTrays();
+        });
+        tray.appendChild(thumb);
+      });
+    });
+  }
 
   function bringToFront(el) { el.style.zIndex = String(++stickerZ); }
   function pDist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
@@ -7708,11 +7971,44 @@ var qrcode = function() {
     wrapEl.style.height = Math.max(0, h) + 'px';
   }
 
+  // A rotation or resize that changes wrap's own clientWidth/clientHeight
+  // leaves every placed sticker's stored x/y/baseWidth (kept in wrap's own
+  // local pixel space) stuck at their old values -- rescaling by however
+  // much wrap just grew/shrank keeps each sticker's fractional position and
+  // size on the frame constant across rotations/resizes.
+  function resyncStickersToWrap(stickersArr, wrap, oldW, oldH) {
+    var newW = wrap.clientWidth, newH = wrap.clientHeight;
+    if (!oldW || !oldH || !newW || !newH) return;
+    if (oldW === newW && oldH === newH) return;
+    var fx = newW / oldW, fy = newH / oldH;
+    stickersArr.forEach(function (s) {
+      s.state.x *= fx;
+      s.state.y *= fy;
+      s.state.baseWidth *= fx;
+      applyStickerTransform(s.wrapper, s.state);
+    });
+  }
   function refreshLiveFrameSize() {
+    var oldW = camFrameWrap.clientWidth, oldH = camFrameWrap.clientHeight;
     fitCamFrame(camFrameWrap, 96);
+    resyncStickersToWrap(activeStickers, camFrameWrap, oldW, oldH);
+  }
+  function updateCollagePreviewOrientation() {
+    var isCollage = lastCaptureType === 'collage';
+    var landscape = camOrientation === 'landscape';
+    camPreviewWrap.classList.toggle('collage-landscape', isCollage && landscape);
+    camPreviewWrap.classList.toggle('collage-portrait', isCollage && !landscape);
+    collageTiltHint.hidden = !(isCollage && !landscape);
   }
   function refreshPreviewFrameSize() {
+    var oldW = camPreviewWrap.clientWidth, oldH = camPreviewWrap.clientHeight;
+    updateCollagePreviewOrientation();
+    if (camPreviewWrap.classList.contains('collage-landscape')) {
+      resyncStickersToWrap(previewStickers, camPreviewWrap, oldW, oldH);
+      return;
+    }
     fitCamFrame(camPreviewWrap, 88, uploadedImageRatio);
+    resyncStickersToWrap(previewStickers, camPreviewWrap, oldW, oldH);
   }
 
   window.addEventListener('resize', function () {
@@ -7823,10 +8119,12 @@ var qrcode = function() {
       refreshPreviewFrameSize();
     }
   }
+  var collageTiltHint = document.getElementById('collageTiltHint');
   window.matchMedia('(orientation: landscape)').addEventListener('change', applyPhysicalOrientation);
 
   function enterPreview() {
     camPreviewWrap.setAttribute('data-orientation', camOrientation);
+    updateCollagePreviewOrientation();
     camLive.hidden = true;
     camPreview.hidden = false;
     camSaveMsg.textContent = '';
@@ -7869,8 +8167,8 @@ var qrcode = function() {
     }, 'image/jpeg', 0.92);
   }
 
-  function finishEnterPreviewFromCanvas(saveLabel) {
-    lastCaptureType = 'photo';
+  function finishEnterPreviewFromCanvas(saveLabel, captureType) {
+    lastCaptureType = captureType || 'photo';
     camCanvas.hidden = false;
     camPreviewVideo.hidden = true;
     camEditRow.hidden = false;
@@ -8005,10 +8303,31 @@ var qrcode = function() {
     camModeBtn.disabled = false;
   }
 
+  var CAM_MODE_ICONS = {
+    photo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2Z"/><circle cx="12" cy="13" r="4"/></svg>',
+    video: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7 16 12l7 5V7Z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>',
+    collage: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="18" rx="1.5"/><rect x="12" y="3" width="9" height="8" rx="1.5"/><rect x="12" y="13" width="9" height="8" rx="1.5"/></svg>'
+  };
+  function updateCollageProgressUI() {
+    if (!camCollageMode) { collageIndicator.hidden = true; return; }
+    var n = collageShots.length;
+    collageIndicator.hidden = false;
+    if (n >= COLLAGE_SHOT_COUNT) { collageProgressText.textContent = 'Compositing…'; }
+    else { collageProgressText.textContent = 'Shot ' + (n + 1) + ' of ' + COLLAGE_SHOT_COUNT + ' — ' + COLLAGE_SHOT_LABELS[n]; }
+  }
+  function resetCollageState() {
+    collageShots = [];
+    collageTileFrameStyle = ['straight', 'straight', 'straight', 'straight'];
+    updateCollageProgressUI();
+  }
   camModeBtn.addEventListener('click', function () {
-    camCaptureMode = camCaptureMode === 'photo' ? 'video' : 'photo';
-    camModeBtn.setAttribute('aria-pressed', camCaptureMode === 'video' ? 'true' : 'false');
+    camCaptureMode = camCaptureMode === 'photo' ? 'video' : (camCaptureMode === 'video' ? 'collage' : 'photo');
+    camModeBtn.setAttribute('aria-pressed', camCaptureMode !== 'photo' ? 'true' : 'false');
+    camModeBtn.innerHTML = CAM_MODE_ICONS[camCaptureMode];
+    camModeBtn.setAttribute('aria-label', 'Switch capture mode (currently ' + camCaptureMode + ')');
     camShutterBtn.classList.toggle('video-mode', camCaptureMode === 'video');
+    camCollageMode = camCaptureMode === 'collage';
+    if (camCollageMode) resetCollageState(); else collageIndicator.hidden = true;
     camShutterBtn.setAttribute('aria-label', camCaptureMode === 'video' ? 'Start recording' : 'Take photo');
   });
 
@@ -8021,11 +8340,17 @@ var qrcode = function() {
       }
       return;
     }
+    if (camCaptureMode === 'collage') {
+      captureCollageShot();
+      return;
+    }
     capturePhoto();
   });
 
   camEditBtn.addEventListener('click', function () {
     camPickerToggle.hidden = false;
+    camFrameToggleBtn.hidden = lastCaptureType === 'collage';
+    collageFrameToggleBtn.hidden = lastCaptureType !== 'collage';
     setStickerTarget(camPreviewWrap, previewStickers);
     camEditBtn.style.display = 'none';
   });
@@ -8066,7 +8391,7 @@ var qrcode = function() {
       queueOrUploadPhotobooth(blob, ts, lastCaptureType);
     }
 
-    if (lastCaptureType === 'photo') {
+    if (lastCaptureType === 'photo' || lastCaptureType === 'collage') {
       var ctx = camCanvas.getContext('2d');
       if (previewStickers.length) {
         drawStickersToCanvas(ctx, camPreviewWrap, previewStickers, camCanvas.width, camCanvas.height);
