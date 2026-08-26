@@ -904,6 +904,7 @@
   .collage-tile-label { font-family: var(--font-body); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; margin: 10px 0 4px; color: var(--eyebrow-blue); }
   .collage-tilt-hint { text-align: center; }
   #camPreviewWrap.collage-landscape { width: 100vw !important; height: 100vh !important; position: fixed; inset: 0; z-index: 205; }
+  #camPreviewWrap.collage-landscape canvas,
   #camPreviewWrap.collage-portrait canvas { object-fit: contain; }
   .sticker-edit-bar { display: flex; gap: 16px; margin-top: 10px; font-family: var(--font-body); font-size: 12.5px; }
   .sticker-edit-bar:not([hidden]) { display: flex; }
@@ -7996,6 +7997,8 @@ var qrcode = function() {
   function updateCollagePreviewOrientation() {
     var isCollage = lastCaptureType === 'collage';
     var landscape = camOrientation === 'landscape';
+    var prevLandscape = camPreviewWrap.classList.contains('collage-landscape');
+    if (isCollage && landscape !== prevLandscape) resetCollageViewTransform();
     camPreviewWrap.classList.toggle('collage-landscape', isCollage && landscape);
     camPreviewWrap.classList.toggle('collage-portrait', isCollage && !landscape);
     collageTiltHint.hidden = !(isCollage && !landscape);
@@ -8315,10 +8318,60 @@ var qrcode = function() {
     if (n >= COLLAGE_SHOT_COUNT) { collageProgressText.textContent = 'Compositing…'; }
     else { collageProgressText.textContent = 'Shot ' + (n + 1) + ' of ' + COLLAGE_SHOT_COUNT + ' — ' + COLLAGE_SHOT_LABELS[n]; }
   }
+  var collageViewScale = 1, collageViewX = 0, collageViewY = 0;
+  function applyCollageViewTransform() {
+    camPreviewWrap.style.transform = (collageViewScale === 1 && !collageViewX && !collageViewY)
+      ? '' : 'translate(' + collageViewX + 'px, ' + collageViewY + 'px) scale(' + collageViewScale + ')';
+  }
+  function resetCollageViewTransform() {
+    collageViewScale = 1; collageViewX = 0; collageViewY = 0;
+    camPreviewWrap.style.transform = '';
+  }
+  (function () {
+    var pointers = new Map();
+    var dragging = false, dragStartX = 0, dragStartY = 0, dragOrigX = 0, dragOrigY = 0;
+    var startDist = 0, startScale = 1;
+    camPreviewWrap.addEventListener('pointerdown', function (e) {
+      if (lastCaptureType !== 'collage') return;
+      if (e.target.closest && e.target.closest('.sticker-wrap')) return;
+      camPreviewWrap.setPointerCapture(e.pointerId);
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pointers.size === 1) {
+        dragging = true;
+        dragStartX = e.clientX; dragStartY = e.clientY;
+        dragOrigX = collageViewX; dragOrigY = collageViewY;
+      } else if (pointers.size === 2) {
+        var pts = Array.from(pointers.values());
+        startDist = pDist(pts[0], pts[1]);
+        startScale = collageViewScale;
+      }
+    });
+    camPreviewWrap.addEventListener('pointermove', function (e) {
+      if (!pointers.has(e.pointerId)) return;
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pointers.size === 2) {
+        var pts = Array.from(pointers.values());
+        var d = pDist(pts[0], pts[1]);
+        collageViewScale = clampNum(startScale * (d / (startDist || d)), 1, 4);
+        applyCollageViewTransform();
+      } else if (pointers.size === 1 && dragging && collageViewScale > 1) {
+        collageViewX = dragOrigX + (e.clientX - dragStartX);
+        collageViewY = dragOrigY + (e.clientY - dragStartY);
+        applyCollageViewTransform();
+      }
+    });
+    function endPointer(e) {
+      pointers.delete(e.pointerId);
+      dragging = pointers.size > 0;
+    }
+    camPreviewWrap.addEventListener('pointerup', endPointer);
+    camPreviewWrap.addEventListener('pointercancel', endPointer);
+  })();
   function resetCollageState() {
     collageShots = [];
     collageTileFrameStyle = ['straight', 'straight', 'straight', 'straight'];
     updateCollageProgressUI();
+    resetCollageViewTransform();
   }
   camModeBtn.addEventListener('click', function () {
     camCaptureMode = camCaptureMode === 'photo' ? 'video' : (camCaptureMode === 'video' ? 'collage' : 'photo');
