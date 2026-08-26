@@ -1448,7 +1448,8 @@
       gap: 30px;
       align-items: start;
     }
-    .banner, .intro, .photo-wrap, #details, #gallery, #photobooth, #wishesCard, footer.sig {
+    .tab-page:not(.active) { display: none !important; }
+  .banner, .intro, .photo-wrap, #details, #gallery, #photobooth, #wishesCard, footer.sig {
       grid-column: 1 / -1;
     }
     /* .closing-card and .qr-card are left un-spanned on purpose, so they
@@ -1526,7 +1527,7 @@
 <div class="app-shell">
 <div class="wrap">
 
-  <section class="banner" id="invite">
+  <section class="banner tab-page active" id="invite">
     <div class="banner-inner">
       <p class="banner-monogram" aria-hidden="true">&#9825;</p>
       <img id="bannerImg" alt="" hidden>
@@ -1704,7 +1705,7 @@
     <a href="#rsvpCard" class="send-btn hero-cta">RSVP Now</a>
   </div>
 
-  <section class="block" id="details">
+  <section class="block tab-page" id="details">
 
     <div class="program-card" id="celebrationTimelineCard">
       <div class="sub-head">
@@ -1742,9 +1743,55 @@
       </div>
     </div>
 
+  
+    <section class="wishes-card" id="wishesCard" hidden>
+    <div class="celeb-admin" id="celebAdmin" hidden>
+      <p class="celeb-admin-status" id="celebStatus"></p>
+      <button type="button" class="pillbtn p3" id="celebToggleBtn">Make Public</button>
+    </div>
+    <div class="sub-head">
+      <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M20 2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3v4l5-4h8a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2Z"/></svg>
+      <h2>Leave a Wish or Message</h2>
+    </div>
+    <p class="panel-sub" style="margin: -6px 0 16px; font-size: 12.5px;">For Angela &amp; James and family &mdash; these words will be treasured.</p>
+
+    <form id="wishForm">
+      <div class="field">
+        <label for="wishName">Your Name</label>
+        <input type="text" id="wishName" placeholder="Enter your name" required>
+      </div>
+      <div class="field">
+        <label for="wishMessage">Your Message</label>
+        <textarea id="wishMessage" rows="3" placeholder="Write your wish for Angela &amp; James and the family..." required></textarea>
+      </div>
+      <div class="wish-photo-row">
+        <button type="button" class="pillbtn p3" id="wishCamBtn">&#128247; Take a Photo</button>
+        <button type="button" class="pillbtn p3" id="wishGalleryBtn">&#128444;&#65039; Upload from Gallery</button>
+        <button type="button" class="pillbtn p3" id="wishUrlBtn">&#128279; Paste Image URL</button>
+        <input type="file" accept="image/*" id="wishGalleryInput" hidden>
+      </div>
+      <div class="wish-photo-preview" id="wishPhotoPreviewWrap" hidden>
+        <img id="wishPhotoPreviewImg" alt="Attached photo">
+        <button type="button" class="sticker-del" id="wishPhotoRemoveBtn" aria-label="Remove photo">&times;</button>
+      </div>
+      <div class="wish-emoji-row">
+        <button type="button" class="wish-emoji-toggle" id="wishEmojiToggle" aria-label="Add an emoji">😊</button>
+        <div class="wish-emoji-picker" id="wishEmojiPicker" hidden></div>
+      </div>
+      <button type="submit" class="send-btn">
+        Post Wish
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+      <p class="rsvp-note" id="wishNote"></p>
+    </form>
+
+    <div class="wish-thread" id="wishThread">
+      <p class="wish-empty" id="wishEmpty">No messages yet &mdash; be the first to leave one!</p>
+    </div>
+  </section>
   </section>
 
-  <section class="block" id="gallery">
+  <section class="block tab-page" id="gallery">
     <div class="video-link-card" id="videoLinkCard" hidden>
       <div class="sub-head">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
@@ -2840,51 +2887,7 @@
     <p class="share-note" id="shareNote"></p>
   </section>
 
-  <section class="wishes-card" id="wishesCard" hidden>
-    <div class="celeb-admin" id="celebAdmin" hidden>
-      <p class="celeb-admin-status" id="celebStatus"></p>
-      <button type="button" class="pillbtn p3" id="celebToggleBtn">Make Public</button>
-    </div>
-    <div class="sub-head">
-      <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M20 2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3v4l5-4h8a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2Z"/></svg>
-      <h2>Leave a Wish or Message</h2>
-    </div>
-    <p class="panel-sub" style="margin: -6px 0 16px; font-size: 12.5px;">For Angela &amp; James and family &mdash; these words will be treasured.</p>
-
-    <form id="wishForm">
-      <div class="field">
-        <label for="wishName">Your Name</label>
-        <input type="text" id="wishName" placeholder="Enter your name" required>
-      </div>
-      <div class="field">
-        <label for="wishMessage">Your Message</label>
-        <textarea id="wishMessage" rows="3" placeholder="Write your wish for Angela &amp; James and the family..." required></textarea>
-      </div>
-      <div class="wish-photo-row">
-        <button type="button" class="pillbtn p3" id="wishCamBtn">&#128247; Take a Photo</button>
-        <button type="button" class="pillbtn p3" id="wishGalleryBtn">&#128444;&#65039; Upload from Gallery</button>
-        <button type="button" class="pillbtn p3" id="wishUrlBtn">&#128279; Paste Image URL</button>
-        <input type="file" accept="image/*" id="wishGalleryInput" hidden>
-      </div>
-      <div class="wish-photo-preview" id="wishPhotoPreviewWrap" hidden>
-        <img id="wishPhotoPreviewImg" alt="Attached photo">
-        <button type="button" class="sticker-del" id="wishPhotoRemoveBtn" aria-label="Remove photo">&times;</button>
-      </div>
-      <div class="wish-emoji-row">
-        <button type="button" class="wish-emoji-toggle" id="wishEmojiToggle" aria-label="Add an emoji">😊</button>
-        <div class="wish-emoji-picker" id="wishEmojiPicker" hidden></div>
-      </div>
-      <button type="submit" class="send-btn">
-        Post Wish
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-      </button>
-      <p class="rsvp-note" id="wishNote"></p>
-    </form>
-
-    <div class="wish-thread" id="wishThread">
-      <p class="wish-empty" id="wishEmpty">No messages yet &mdash; be the first to leave one!</p>
-    </div>
-  </section>
+  
 
   <section class="qr-card">
     <p class="qr-label">Scan to open on another phone</p>
@@ -6351,24 +6354,25 @@ var qrcode = function() {
   });
 
   var navLinks = document.querySelectorAll('nav.tabbar a');
-  var sections = Array.from(navLinks).map(function (a) {
-    return document.getElementById(a.getAttribute('data-target'));
-  });
-  var io = new IntersectionObserver(function (entries) {
-    entries.forEach(function (entry) {
-      if (entry.isIntersecting) {
-        var id = entry.target.id;
-        navLinks.forEach(function (a) {
-          a.classList.toggle('active', a.getAttribute('data-target') === id);
-        });
-      }
+  var tabPages = document.querySelectorAll('.tab-page');
+  function showTab(id) {
+    tabPages.forEach(function (p) { p.classList.toggle('active', p.id === id); });
+    navLinks.forEach(function (a) { a.classList.toggle('active', a.getAttribute('data-target') === id); });
+    var shell = document.querySelector('.app-shell');
+    if (shell) shell.scrollTop = 0;
+    window.scrollTo(0, 0);
+  }
+  navLinks.forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      e.preventDefault();
+      showTab(a.getAttribute('data-target'));
     });
-  }, {
-    root: window.matchMedia('(min-width: 481px)').matches ? document.querySelector('.app-shell') : null,
-    rootMargin: '-40% 0px -50% 0px',
-    threshold: 0
   });
-  sections.forEach(function (s) { if (s) io.observe(s); });
+  (function () {
+    var h = (location.hash || '').replace('#', '');
+    var valid = Array.prototype.map.call(navLinks, function (a) { return a.getAttribute('data-target'); });
+    if (valid.indexOf(h) !== -1) showTab(h);
+  })();
 
   /* ---- Gallery admin: passcode gate + Cloudinary upload + JSONBin manifest ---- */
   var GALLERY_CONFIG = {
