@@ -894,6 +894,8 @@
   .cam-preview-edit-row { text-align: center; }
   .cam-preview-edit-row .rsvp-edit-link { color: #fff; }
   .sticker-tray::-webkit-scrollbar { display: none; }
+  .frame-thickness-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; font-family: var(--font-body); font-size: 12.5px; }
+  .frame-thickness-row input { flex: 1; }
   .sticker-edit-bar { display: flex; gap: 16px; margin-top: 10px; font-family: var(--font-body); font-size: 12.5px; }
   .sticker-edit-bar:not([hidden]) { display: flex; }
   .sticker-edit-bar label { display: flex; align-items: center; gap: 6px; }
@@ -1927,6 +1929,9 @@
       <div class="picker-block" id="framePickerBlock" hidden>
         <p class="cam-hint">Tap a frame to apply it &mdash; choose &ldquo;Classic&rdquo; for the default</p>
         <div class="sticker-tray" id="frameTray"></div>
+        <label class="frame-thickness-row">Border thickness
+          <input type="range" id="frameThicknessSlider" min="0.4" max="2.5" step="0.1" value="1">
+        </label>
       </div>
       <div class="picker-block" id="stickerPickerBlock" hidden>
         <p class="cam-hint">Tap a sticker to add it &mdash; drag to move, pinch to resize &amp; rotate</p>
@@ -6824,13 +6829,14 @@ var qrcode = function() {
     return stem + leaf1 + leaf2 + petals + center;
   }
 
-  function buildFrameSvg(w, h, style) {
+  function buildFrameSvg(w, h, style, thicknessMult) {
     style = style || 'straight';
+    thicknessMult = thicknessMult || 1;
     var m = Math.min(w, h);
     var inset = m * 0.025;
     var rx = m * 0.07;
-    var strokeW = m * 0.006;   // an elegant, thin border (~1.5mm at photo scale)
-    var flourishW = m * 0.002; // the corner flowers are drawn even finer (~0.5mm)
+    var strokeW = m * 0.006 * thicknessMult;   // an elegant, thin border (~1.5mm at photo scale)
+    var flourishW = m * 0.002 * thicknessMult; // the corner flowers are drawn even finer (~0.5mm)
     var rectX = inset, rectY = inset, rectW = w - 2 * inset, rectH = h - 2 * inset;
     // Blue ribbon with strokes of silver and gold running through it.
     var borderDefs = '<defs><linearGradient id="frBlue" x1="0" y1="0" x2="1" y2="1">' +
@@ -6870,14 +6876,21 @@ var qrcode = function() {
       '</svg>';
   }
 
+  var selectedFrameThickness = 1;
   function refreshFrameOverlay() {
     var w = camOrientation === 'portrait' ? 720 : 1280;
     var h = camOrientation === 'portrait' ? 1280 : 720;
-    var src = 'data:image/svg+xml;base64,' + btoa(buildFrameSvg(w, h, selectedFrameStyle));
+    var src = 'data:image/svg+xml;base64,' + btoa(buildFrameSvg(w, h, selectedFrameStyle, selectedFrameThickness));
     camFrameImg.src = src;
     camPreviewFrameImg.src = src;
   }
   refreshFrameOverlay();
+  var frameThicknessSlider = document.getElementById('frameThicknessSlider');
+  frameThicknessSlider.addEventListener('input', function () {
+    selectedFrameThickness = parseFloat(frameThicknessSlider.value) || 1;
+    refreshFrameOverlay();
+    renderFrameTray();
+  });
 
   function hidePickers() {
     framePickerBlock.hidden = true;
@@ -6889,7 +6902,7 @@ var qrcode = function() {
       var thumb = document.createElement('button');
       thumb.type = 'button';
       thumb.className = 'sticker-thumb' + (item.style === selectedFrameStyle ? ' is-selected' : '');
-      var thumbSrc = 'data:image/svg+xml;base64,' + btoa(buildFrameSvg(60, 60, item.style));
+      var thumbSrc = 'data:image/svg+xml;base64,' + btoa(buildFrameSvg(60, 60, item.style, selectedFrameThickness));
       thumb.innerHTML = '<img src="' + thumbSrc + '" alt="' + item.label + '">';
       thumb.title = item.label;
       thumb.addEventListener('click', function () {
@@ -7692,7 +7705,7 @@ var qrcode = function() {
   // Frame + caption are baked on top at final-save time (not at shutter press) so
   // the frame stays swappable both before the shot (live tray) and after (edit tray).
   function bakeFrameAndCaption(ctx, w, h, cb) {
-    var frameSrc = 'data:image/svg+xml;base64,' + btoa(buildFrameSvg(w, h, selectedFrameStyle));
+    var frameSrc = 'data:image/svg+xml;base64,' + btoa(buildFrameSvg(w, h, selectedFrameStyle, selectedFrameThickness));
     var frameImg = new Image();
     frameImg.onload = function () {
       ctx.drawImage(frameImg, 0, 0, w, h);
