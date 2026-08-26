@@ -894,6 +894,10 @@
   .cam-preview-edit-row { text-align: center; }
   .cam-preview-edit-row .rsvp-edit-link { color: #fff; }
   .sticker-tray::-webkit-scrollbar { display: none; }
+  .sticker-edit-bar { display: flex; gap: 16px; margin-top: 10px; font-family: var(--font-body); font-size: 12.5px; }
+  .sticker-edit-bar:not([hidden]) { display: flex; }
+  .sticker-edit-bar label { display: flex; align-items: center; gap: 6px; }
+  .sticker-edit-bar input { width: 56px; padding: 4px 6px; border-radius: 6px; border: 1px solid var(--outline-variant); font-size: 12.5px; font-family: var(--font-body); }
   .sticker-thumb {
     flex: none; width: 54px; height: 54px; border-radius: 14px;
     background: rgba(255,255,255,0.1); border: 1.5px solid rgba(255,255,255,0.25);
@@ -1927,6 +1931,10 @@
       <div class="picker-block" id="stickerPickerBlock" hidden>
         <p class="cam-hint">Tap a sticker to add it &mdash; drag to move, pinch to resize &amp; rotate</p>
         <div class="sticker-tray" id="stickerTray"></div>
+        <div class="sticker-edit-bar" id="stickerEditBar" hidden>
+          <label>Size <input type="number" id="stickerSizeInput" min="10" max="400" step="1" inputmode="numeric">%</label>
+          <label>Rotate <input type="number" id="stickerRotInput" min="-180" max="180" step="1" inputmode="numeric">&deg;</label>
+        </div>
       </div>
     </div>
   </div>
@@ -7293,7 +7301,40 @@ var qrcode = function() {
       'rotate(' + state.rot + 'deg) scale(' + state.scale + ')';
   }
 
-  function makeStickerInteractive(wrapper, state, wrap) {
+  var stickerEditBar = document.getElementById('stickerEditBar');
+  var stickerSizeInput = document.getElementById('stickerSizeInput');
+  var stickerRotInput = document.getElementById('stickerRotInput');
+  var selectedStickerEntry = null;
+  function selectStickerEntry(entry) {
+    selectedStickerEntry = entry;
+    stickerSizeInput.value = Math.round(entry.state.scale * 100);
+    stickerRotInput.value = Math.round(entry.state.rot);
+    stickerEditBar.hidden = false;
+  }
+  function deselectStickerEntry(entry) {
+    if (selectedStickerEntry !== entry) return;
+    selectedStickerEntry = null;
+    stickerEditBar.hidden = true;
+  }
+  stickerSizeInput.addEventListener('input', function () {
+    if (!selectedStickerEntry) return;
+    var v = clampNum(parseFloat(stickerSizeInput.value) || 100, 10, 400);
+    selectedStickerEntry.state.scale = v / 100;
+    applyStickerTransform(selectedStickerEntry.wrapper, selectedStickerEntry.state);
+  });
+  stickerRotInput.addEventListener('input', function () {
+    if (!selectedStickerEntry) return;
+    selectedStickerEntry.state.rot = parseFloat(stickerRotInput.value) || 0;
+    applyStickerTransform(selectedStickerEntry.wrapper, selectedStickerEntry.state);
+  });
+  document.addEventListener('pointerdown', function (e) {
+    if (!selectedStickerEntry) return;
+    if (e.target.closest && (e.target.closest('.sticker-wrap') || e.target.closest('.sticker-edit-bar'))) return;
+    selectedStickerEntry = null;
+    stickerEditBar.hidden = true;
+  });
+
+  function makeStickerInteractive(wrapper, state, wrap, entry) {
     var pointers = new Map();
     var dragOffX = 0, dragOffY = 0;
     var startDist = 0, startAngle = 0, startScale = 1, startRot = 0;
@@ -7302,6 +7343,7 @@ var qrcode = function() {
       wrapper.setPointerCapture(e.pointerId);
       pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
       bringToFront(wrapper);
+      selectStickerEntry(entry);
       var rect = wrap.getBoundingClientRect();
       if (pointers.size === 1) {
         dragOffX = (e.clientX - rect.left) - state.x;
@@ -7329,6 +7371,10 @@ var qrcode = function() {
         var a = pAngle(pts[0], pts[1]);
         state.scale = clampNum(startScale * (d / (startDist || d)), 0.3, 4);
         state.rot = startRot + (a - startAngle);
+        if (selectedStickerEntry === entry) {
+          stickerSizeInput.value = Math.round(state.scale * 100);
+          stickerRotInput.value = Math.round(state.rot);
+        }
       }
       applyStickerTransform(wrapper, state);
     });
@@ -7365,6 +7411,7 @@ var qrcode = function() {
     del.addEventListener('click', function (e) {
       e.stopPropagation();
       wrapper.remove();
+      deselectStickerEntry(entry);
       var i = stickersArr.indexOf(entry);
       if (i !== -1) stickersArr.splice(i, 1);
     });
@@ -7380,8 +7427,8 @@ var qrcode = function() {
     applyStickerTransform(wrapper, state);
     wrap.appendChild(wrapper);
     bringToFront(wrapper);
-    makeStickerInteractive(wrapper, state, wrap);
     var entry = { wrapper: wrapper, img: img, state: state };
+    makeStickerInteractive(wrapper, state, wrap, entry);
     stickersArr.push(entry);
   }
 
