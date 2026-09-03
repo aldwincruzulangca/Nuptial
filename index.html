@@ -1166,6 +1166,7 @@
     gap: 10px;
   }
   .music-widget[hidden] { display: none; }
+  .audio-control-group { position: relative; display: flex; }
   .music-toggle {
     width: 44px; height: 44px; border-radius: 50% !important; border: 1px solid var(--line);
     background: rgba(255, 255, 255, 0.75); color: var(--c-cake); cursor: pointer;
@@ -1175,10 +1176,23 @@
   .music-toggle svg { width: 22px; height: 22px; }
   .music-toggle.is-muted { color: var(--ink-soft); opacity: 0.6; }
   .music-toggle:focus-visible { outline: 2px solid var(--c-cal); outline-offset: 2px; }
+  /* Icon-only until tapped -- the slider (and a dedicated mute button)
+     pop out to the side in their own panel instead of a permanently
+     visible pill, matching the BirthdayEMA/hero-embed.html pattern. */
   .music-volume-panel {
+    position: absolute; top: 50%; right: calc(100% + 10px); transform: translateY(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
     background: rgba(255, 255, 255, 0.75); border: 1px solid var(--line);
-    padding: 15px 8px; box-shadow: 0 6px 18px var(--shadow);
+    border-radius: 20px; padding: 15px 8px; box-shadow: 0 6px 18px var(--shadow);
   }
+  .music-volume-panel[hidden] { display: none; }
+  .audio-mute-btn {
+    width: 28px; height: 28px; border-radius: 50% !important; border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.9); color: var(--c-cake); cursor: pointer;
+    display: flex; align-items: center; justify-content: center; flex: none;
+  }
+  .audio-mute-btn svg { width: 14px; height: 14px; }
+  .audio-mute-btn.is-muted { color: var(--ink-soft); opacity: 0.6; }
   .music-playlist-popup {
     position: absolute; bottom: 0; right: calc(100% + 10px);
     width: 230px; max-height: 300px; overflow-y: auto;
@@ -2899,11 +2913,14 @@
        managed dynamically at runtime, so no static <source> or loop here. -->
   <audio id="bgMusic" preload="none"></audio>
   <div class="music-widget" id="musicWidget">
-    <button type="button" class="music-toggle" id="musicToggle" aria-label="Mute background music" aria-pressed="false">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>
-    </button>
-    <div class="music-volume-panel">
-      <input type="range" id="musicVolumeSlider" min="0" max="100" value="45" aria-label="Music volume">
+    <div class="audio-control-group">
+      <button type="button" class="music-toggle" id="musicToggle" aria-label="Show music volume" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+      </button>
+      <div class="music-volume-panel" id="musicVolumePanel" hidden>
+        <input type="range" id="musicVolumeSlider" min="0" max="100" value="45" aria-label="Music volume">
+        <button type="button" class="audio-mute-btn" id="musicMuteBtn" aria-label="Mute background music" aria-pressed="false"></button>
+      </div>
     </div>
     <button type="button" class="music-toggle" id="musicPlaylistToggle" aria-label="Show background music playlist" aria-pressed="false">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
@@ -5347,7 +5364,9 @@ var qrcode = function() {
      in its own IIFE) so loadManifest() can call rebuildPlaylist(). ---- */
   var bgMusicAudio = document.getElementById('bgMusic');
   var musicToggleBtn = document.getElementById('musicToggle');
+  var musicVolumePanel = document.getElementById('musicVolumePanel');
   var musicVolumeSlider = document.getElementById('musicVolumeSlider');
+  var musicMuteBtn = document.getElementById('musicMuteBtn');
   var musicPlaylistToggleBtn = document.getElementById('musicPlaylistToggle');
   var musicPlaylistPopup = document.getElementById('musicPlaylistPopup');
   var musicPlaylistEmpty = document.getElementById('musicPlaylistEmpty');
@@ -5377,10 +5396,11 @@ var qrcode = function() {
   var musicShuffle = localStorage.getItem(MUSIC_SHUFFLE_KEY) === '1';
 
   function updateMusicToggleUI() {
-    musicToggleBtn.innerHTML = musicMuted ? MUSIC_ICON_OFF : MUSIC_ICON_ON;
     musicToggleBtn.classList.toggle('is-muted', musicMuted);
-    musicToggleBtn.setAttribute('aria-pressed', String(musicMuted));
-    musicToggleBtn.setAttribute('aria-label', musicMuted ? 'Unmute background music' : 'Mute background music');
+    musicMuteBtn.innerHTML = musicMuted ? MUSIC_ICON_OFF : MUSIC_ICON_ON;
+    musicMuteBtn.classList.toggle('is-muted', musicMuted);
+    musicMuteBtn.setAttribute('aria-pressed', String(musicMuted));
+    musicMuteBtn.setAttribute('aria-label', musicMuted ? 'Unmute background music' : 'Mute background music');
   }
   updateMusicToggleUI();
 
@@ -5594,7 +5614,15 @@ var qrcode = function() {
   }
   rebuildPlaylist();
 
-  musicToggleBtn.addEventListener('click', function () {
+  musicToggleBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    var show = musicVolumePanel.hidden;
+    if (show) { musicPlaylistPopup.hidden = true; musicPlaylistToggleBtn.setAttribute('aria-pressed', 'false'); }
+    musicVolumePanel.hidden = !show;
+    musicToggleBtn.setAttribute('aria-expanded', String(show));
+  });
+
+  musicMuteBtn.addEventListener('click', function () {
     musicMuted = !musicMuted;
     localStorage.setItem(MUSIC_MUTED_KEY, musicMuted ? '1' : '0');
     bgMusicAudio.muted = musicMuted;
@@ -5618,13 +5646,19 @@ var qrcode = function() {
 
   musicPlaylistToggleBtn.addEventListener('click', function (e) {
     e.stopPropagation();
-    musicPlaylistPopup.hidden = !musicPlaylistPopup.hidden;
-    musicPlaylistToggleBtn.setAttribute('aria-pressed', String(!musicPlaylistPopup.hidden));
+    var show = musicPlaylistPopup.hidden;
+    if (show) { musicVolumePanel.hidden = true; musicToggleBtn.setAttribute('aria-expanded', 'false'); }
+    musicPlaylistPopup.hidden = !show;
+    musicPlaylistToggleBtn.setAttribute('aria-pressed', String(show));
   });
   document.addEventListener('click', function (e) {
     if (!musicPlaylistPopup.hidden && !musicPlaylistPopup.contains(e.target) && e.target !== musicPlaylistToggleBtn) {
       musicPlaylistPopup.hidden = true;
       musicPlaylistToggleBtn.setAttribute('aria-pressed', 'false');
+    }
+    if (!musicVolumePanel.hidden && !musicVolumePanel.contains(e.target) && !musicToggleBtn.contains(e.target)) {
+      musicVolumePanel.hidden = true;
+      musicToggleBtn.setAttribute('aria-expanded', 'false');
     }
   });
 
