@@ -780,6 +780,7 @@
   .admin-msg { font-size: 11.5px; color: var(--ink-soft); margin: 10px 0 0; min-height: 14px; }
   .admin-msg.err { color: var(--c-heart); }
   .admin-msg.ok { color: var(--c-pin); }
+  .admin-msg.warn { color: #a6720f; }
 
   /* ---- Show/Hide Sections checklist (admin panel) ---- */
   .toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; color: var(--ink); cursor: pointer; }
@@ -6451,6 +6452,21 @@ var qrcode = function() {
     });
   }
 
+  // Facebook's scontent.*.fbcdn.net / fbsbx.com links (what you get from
+  // "Copy image address" on a Facebook photo) are signed and time-limited
+  // -- they work for a while, then the signature expires and the link is
+  // dead forever, with no code-side fix possible since the image bytes
+  // just aren't reachable at that URL anymore. This is exactly what
+  // silently killed the whole gallery once already (confirmed 2026-09:
+  // all 186 photos across all 8 albums were fbcdn.net links, all 403).
+  // Doesn't block saving -- some admins may knowingly accept the risk for
+  // a short-lived link -- just warns so it's a decision, not an accident.
+  var FACEBOOK_CDN_PATTERN = /fbcdn\.net|fbsbx\.com/i;
+  function containsFacebookCdnUrl(urls) {
+    return urls.some(function (u) { return FACEBOOK_CDN_PATTERN.test(u); });
+  }
+  var FACEBOOK_CDN_WARNING = ' ⚠ Heads up: this looks like a Facebook photo link, which expires after a while (Facebook signs them with a time limit) -- it may stop showing later even though it saved fine now. For something permanent, use "Upload a photo" instead so it’s hosted here directly.';
+
   // Split across two bins so a full gallery bin can't block RSVPs/wishes/etc,
   // and vice versa -- each gets its own 100KB jsonbin free-plan budget.
   function putBin(binId, body) {
@@ -7076,11 +7092,13 @@ var qrcode = function() {
     });
     renderSlideshow();
 
+    var fbWarning = containsFacebookCdnUrl(urls) ? FACEBOOK_CDN_WARNING : '';
+
     urlsMsg.textContent = 'Saving…';
     urlsMsg.className = 'admin-msg';
     persistManifest().then(function () {
-      urlsMsg.textContent = 'Added ' + urls.length + (urls.length === 1 ? ' photo' : ' photos') + ' to ' + MONTHS[idx] + '!';
-      urlsMsg.className = 'admin-msg ok';
+      urlsMsg.textContent = 'Added ' + urls.length + (urls.length === 1 ? ' photo' : ' photos') + ' to ' + MONTHS[idx] + '!' + fbWarning;
+      urlsMsg.className = 'admin-msg ' + (fbWarning ? 'warn' : 'ok');
       urlsInput.value = '';
       renderCoverPicker(idx);
     }).catch(function () {
@@ -8278,7 +8296,18 @@ var qrcode = function() {
     mediaUrlMsg.textContent = 'Saving…';
     mediaUrlMsg.className = 'admin-msg';
     Promise.resolve(mediaUrlCallback(url))
-      .then(function () { closeMediaUrlModal(false); })
+      .then(function () {
+        // A Facebook link saves fine but is a ticking clock (see
+        // FACEBOOK_CDN_WARNING) -- worth making the admin actually read
+        // it before the modal vanishes, so this one case skips the
+        // usual auto-close and waits for them to dismiss it manually.
+        if (FACEBOOK_CDN_PATTERN.test(url)) {
+          mediaUrlMsg.textContent = 'Saved!' + FACEBOOK_CDN_WARNING;
+          mediaUrlMsg.className = 'admin-msg warn';
+        } else {
+          closeMediaUrlModal(false);
+        }
+      })
       .catch(function () {
         mediaUrlMsg.textContent = 'Something went wrong — try again.';
         mediaUrlMsg.className = 'admin-msg err';
